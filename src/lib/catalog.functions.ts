@@ -43,6 +43,6 @@ export const getProduct = createServerFn({ method: "GET" })
     const sb = publicClient();
     const { data: product } = await sb.from("products").select(PRODUCT_COLS + ",description,nutrition_facts,sku").eq("slug", data.slug).maybeSingle();
     if (!product) return { product: null, reviews: [] };
-    const { data: reviews } = await sb.from("reviews").select("*").eq("product_id", (product as { id: string }).id).order("created_at", { ascending: false });
+    const { data: reviews } = await sb.from("reviews").select("*").eq("product_id", (product as unknown as { id: string }).id).order("created_at", { ascending: false });
     return { product, reviews: reviews ?? [] };
   });
