@@ -66,7 +66,7 @@ function ProductPage() {
               <span className="w-8 text-center">{qty}</span>
               <button className="p-3" onClick={() => setQty(Math.min(p.stock_quantity, qty + 1))} aria-label="Plus"><Plus className="size-4" /></button>
             </div>
-            <Button size="lg" className="flex-1" disabled={out} onClick={() => add({ productId: p.id, slug: p.slug, title: p.title, brand: p.brand, image: img, unitPrice: pr.price, flavor: flavor || undefined, maxQty: p.stock_quantity }, qty)}>Ajouter au panier</Button>
+            <Button size="lg" className="flex-1" disabled={out} onClick={() => add({ productId: p.id, slug: p.slug, title: p.title, brand: p.brand, image: img, unitPrice: pr.price, ...(flavor ? { flavor } : {}), maxQty: p.stock_quantity }, qty)}>Ajouter au panier</Button>
           </div>
           <div className="mt-6 space-y-2 text-sm text-muted-foreground">
             <p className="flex items-center gap-2"><Truck className="size-4 text-primary" />Livraison partout au Maroc, gratuite dès 500 MAD</p>
