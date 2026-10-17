@@ -8,6 +8,13 @@
       "when": 1792172006669,
       "tag": "0000_store_schema_and_seed",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792197053856,
+      "tag": "0001_super_admin_role",
+      "breakpoints": true
     }
   ]
 }
