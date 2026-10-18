@@ -15,6 +15,13 @@
       "when": 1792197053856,
       "tag": "0001_super_admin_role",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792281857081,
+      "tag": "0002_super_admin_store_permissions",
+      "breakpoints": true
     }
   ]
 }

@@ -5,6 +5,7 @@ import { useCart, itemKey } from "@/lib/cart";
 import { mad, FREE_SHIPPING_THRESHOLD, shippingFor } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useAuth } from "@/lib/auth";
 
 export const WHATSAPP = "212776566089";
 export const INSTAGRAM = "https://www.instagram.com/proteinestore";
@@ -34,6 +35,7 @@ const nav = [
 
 export function Header() {
   const { count, setOpen } = useCart();
+  const { user, isAdmin } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [menu, setMenu] = useState(false);
   useEffect(() => { const f = () => setScrolled(window.scrollY > 20); f(); window.addEventListener("scroll", f); return () => window.removeEventListener("scroll", f); }, []);
@@ -46,7 +48,8 @@ export function Header() {
         </nav>
         <div className="flex items-center gap-1">
           <Link to="/shop" aria-label="Rechercher" className="rounded-full p-2 hover:bg-secondary"><Search className="size-5" /></Link>
-          <Link to="/account" aria-label="Compte" className="rounded-full p-2 hover:bg-secondary"><User className="size-5" /></Link>
+          {isAdmin && <Button asChild variant="ghost" size="sm"><Link to="/admin">Admin</Link></Button>}
+          <Link to={user ? "/account" : "/auth"} aria-label={user ? "Mon compte" : "Connexion"} title={user ? "Mon compte" : "Connexion"} className="rounded-full p-2 hover:bg-secondary"><User className="size-5" /></Link>
           <button aria-label="Panier" onClick={() => setOpen(true)} className="relative rounded-full p-2 hover:bg-secondary">
             <ShoppingBag className="size-5" />
             {count > 0 && <span className="absolute -end-0.5 -top-0.5 grid size-5 place-items-center rounded-full bg-primary font-mono text-[10px] font-bold">{count}</span>}

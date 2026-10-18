@@ -3,7 +3,7 @@ import { MapPin } from "lucide-react";
 import { catalogQuery, useCatalog } from "@/lib/catalog";
 
 export const Route = createFileRoute("/partners")({
-  head: () => ({ meta: [
+  head: () => ({ meta: [{ property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     { title: "Salles partenaires — PROTEIN STORE® Kénitra" },
     { name: "description", content: "Les salles de sport partenaires de Kénitra et leurs avantages membres." },
     { property: "og:title", content: "Salles partenaires — PROTEIN STORE®" },
