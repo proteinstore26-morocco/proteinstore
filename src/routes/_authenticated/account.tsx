@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/account")({
-  head: () => ({ meta: [{ title: "Mon compte — PROTEIN STORE®" }, { name: "description", content: "Votre compte Protein Store." }, { property: "og:title", content: "Mon compte — PROTEIN STORE®" }, { property: "og:description", content: "Votre compte." }] }),
+  head: () => ({ meta: [{ property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },{ title: "Mon compte — PROTEIN STORE®" }, { name: "description", content: "Votre compte Protein Store." }, { property: "og:title", content: "Mon compte — PROTEIN STORE®" }, { property: "og:description", content: "Votre compte." }] }),
   component: Account,
 });
 

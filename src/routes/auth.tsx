@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [
+  head: () => ({ meta: [{ property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     { title: "Connexion — PROTEIN STORE®" },
     { name: "description", content: "Connectez-vous ou créez votre compte Protein Store." },
     { property: "og:title", content: "Connexion — PROTEIN STORE®" },

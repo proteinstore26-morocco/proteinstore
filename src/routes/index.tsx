@@ -9,7 +9,7 @@ import { Countdown } from "@/components/site/Countdown";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
-  head: () => ({ meta: [
+  head: () => ({ meta: [{ property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     { title: "PROTEIN STORE® Kénitra — Whey, créatine & compléments authentiques" },
     { name: "description", content: "La boutique de nutrition sportive de Kénitra. Produits 100% authentiques, livraison partout au Maroc, paiement à la livraison." },
     { property: "og:title", content: "PROTEIN STORE® Kénitra" },

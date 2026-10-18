@@ -3,7 +3,7 @@ import { MessageCircle, Instagram, MapPin } from "lucide-react";
 import { INSTAGRAM, WHATSAPP } from "@/components/site/Layout";
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({ meta: [
+  head: () => ({ meta: [{ property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     { title: "Contact — PROTEIN STORE® Kénitra" },
     { name: "description", content: "Contactez Protein Store sur WhatsApp ou Instagram." },
     { property: "og:title", content: "Contact — PROTEIN STORE®" },

@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/checkout")({
-  head: () => ({ meta: [
+  head: () => ({ meta: [{ property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     { title: "Commande — PROTEIN STORE®" },
     { name: "description", content: "Finalisez votre commande, paiement à la livraison partout au Maroc." },
     { property: "og:title", content: "Commande — PROTEIN STORE®" },

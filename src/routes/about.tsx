@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({ meta: [
+  head: () => ({ meta: [{ property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     { title: "À propos — PROTEIN STORE® Kénitra" },
     { name: "description", content: "Protein Store, votre boutique de nutrition sportive à Kénitra." },
     { property: "og:title", content: "À propos — PROTEIN STORE®" },

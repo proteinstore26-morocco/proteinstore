@@ -9,7 +9,7 @@ const search = z.object({ cat: z.string().optional(), q: z.string().optional() }
 
 export const Route = createFileRoute("/shop")({
   validateSearch: search,
-  head: () => ({ meta: [
+  head: () => ({ meta: [{ property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     { title: "Boutique — PROTEIN STORE® Kénitra" },
     { name: "description", content: "Tous nos compléments : whey, gainers, créatine, pré-workout, acides aminés, brûleurs et santé." },
     { property: "og:title", content: "Boutique — PROTEIN STORE®" },

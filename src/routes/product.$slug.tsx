@@ -18,7 +18,7 @@ export const Route = createFileRoute("/product/$slug")({
     if (!d.product) throw notFound();
     return { title: (d.product as unknown as Product).title };
   },
-  head: ({ loaderData }) => ({ meta: [
+  head: ({ loaderData }) => ({ meta: [{ property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     { title: `${loaderData?.title ?? "Produit"} — PROTEIN STORE®` },
     { name: "description", content: `${loaderData?.title ?? "Produit"} authentique, livré partout au Maroc, paiement à la livraison.` },
     { property: "og:title", content: `${loaderData?.title ?? "Produit"} — PROTEIN STORE®` },

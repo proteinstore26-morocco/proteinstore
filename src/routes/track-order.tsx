@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 export const STATUS_FR: Record<string, string> = { pending: "En attente", confirmed: "Confirmée", shipped: "Expédiée", delivered: "Livrée", cancelled: "Annulée" };
 
 export const Route = createFileRoute("/track-order")({
-  head: () => ({ meta: [
+  head: () => ({ meta: [{ property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
     { title: "Suivi de commande — PROTEIN STORE®" },
     { name: "description", content: "Suivez votre commande avec votre numéro et votre téléphone." },
     { property: "og:title", content: "Suivi de commande — PROTEIN STORE®" },
