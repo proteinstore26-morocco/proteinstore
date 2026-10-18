@@ -34,7 +34,7 @@ export function ProductFields({ product, categories }: { product: Tables<"produc
     <div className="flex items-center gap-2"><Checkbox id="featured" name="is_featured" defaultChecked={product.is_featured} /><Label htmlFor="featured">Produit mis en avant</Label></div>
   </div>;
 }
-export function PartnerFields({ partner }: { partner?: Tables<"partners"> }) {
+export function PartnerFields({ partner }: { partner?: Tables<"partners"> | undefined }) {
   return <div className="grid gap-4 sm:grid-cols-2">
     <Field label="Nom de la salle"><Input name="name" required defaultValue={partner?.name ?? ""} /></Field>
     <Field label="Ville"><Input name="location" defaultValue={partner?.location ?? ""} /></Field>
@@ -51,7 +51,7 @@ export type AdminOrder = Tables<"orders"> & { order_items: Tables<"order_items">
 export function OrderFields({ order }: { order: AdminOrder }) {
   const address = order.shipping_address && typeof order.shipping_address === "object" && !Array.isArray(order.shipping_address) ? order.shipping_address : {};
   return <div className="space-y-5">
-    <div className="grid gap-4 sm:grid-cols-2"><div><p className="font-semibold">{order.customer_name}</p><a className="text-primary" href={`tel:${order.customer_phone}`}>{order.customer_phone}</a><p className="break-all text-sm text-muted-foreground">{order.customer_email}</p></div><div className="text-sm"><p>{String(address.address ?? "")}</p><p>{String(address.city ?? "")} {String(address.postal ?? "")}</p><p className="mt-2 text-muted-foreground">Paiement à la livraison</p></div></div>
+    <div className="grid gap-4 sm:grid-cols-2"><div><p className="font-semibold">{order.customer_name}</p><a className="text-primary" href={`tel:${order.customer_phone}`}>{order.customer_phone}</a><p className="break-all text-sm text-muted-foreground">{order.customer_email}</p></div><div className="text-sm"><p>{String(address["address"] ?? "")}</p><p>{String(address["city"] ?? "")} {String(address["postal"] ?? "")}</p><p className="mt-2 text-muted-foreground">Paiement à la livraison</p></div></div>
     <div className="divide-y border-y">{order.order_items.map((item) => <div key={item.id} className="flex justify-between gap-3 py-3 text-sm"><span>{item.quantity} × {item.product_title}<small className="block text-muted-foreground">{item.variant_name}</small></span><span className="shrink-0 font-mono">{mad(item.quantity * item.price_at_purchase)}</span></div>)}</div>
     <div className="space-y-1 text-sm"><p className="flex justify-between"><span>Sous-total</span><span>{mad(order.subtotal)}</span></p><p className="flex justify-between"><span>Livraison</span><span>{mad(order.shipping_cost)}</span></p><p className="flex justify-between font-semibold"><span>Total</span><span>{mad(order.total)}</span></p></div>
     {order.notes && <p className="text-sm text-muted-foreground">Note client : {order.notes}</p>}
