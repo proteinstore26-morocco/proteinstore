@@ -16,7 +16,7 @@ provided; the repository itself is the contract.
    discount categories, products or the whole catalogue, applied on top of sale prices.
 5. **Language:** French-only copy, RTL-safe layout, no language switcher; the brand and city
    stay in Latin script.
-6. **Backend:** a Supabase-compatible backend (Lovable Cloud) with 10 tables, RLS on every table,
+6. **Backend:** a managed Supabase-compatible backend with 10 tables, RLS on every table,
    and server functions for catalogue, orders, tracking and administration.
 7. **Auth:** Supabase email/password, `user_roles` with `customer` / `admin` / `super_admin`,
    admin-only store management and Super-Admin-only staff management.
@@ -34,17 +34,17 @@ provided; the repository itself is the contract.
 | A1 | The GitHub repository is the complete specification; no separate BRD exists. | Low — requirements derive from code and live copy. |
 | A2 | French-only UI is intentional for v1; no Arabic/French switcher. | Medium — i18n is out of scope. |
 | A3 | COD is the only payment method for v1. | Low — checkout is built around it. |
-| A4 | The live Lovable Cloud backend is the production data store and stays in place. | High — self-hosting Postgres would be a rewrite. |
+| A4 | The managed Supabase-compatible backend stays in place for catalogue, accounts and admin. | High — self-hosting Postgres would be a rewrite. |
 | A5 | "Deploy" means a new isolated Node service on this host behind Caddy, not touching the existing productions. | High — would change the deployment target. |
-| A6 | The service-role key can be supplied by the owner from Lovable Cloud settings. | High — COD checkout cannot write orders without it. |
+| A6 | Orders are placed through WhatsApp; no server-side order writer or service-role key is needed. | Low — orders would need a manual archive instead of a database queue. |
 | A7 | sslip.io hostname is acceptable until DNS for a real domain is pointed here. | Low — swap the Caddy vhost. |
 
 ## Blockers raised at intake
 
 1. **Repository access** — resolved: the owner made the repository public; import succeeded.
-2. **Server-only key** — `SUPABASE_SERVICE_ROLE_KEY` was never committed and is not present in the
-   host environment. Without it, `orders` INSERT (RLS has no policy for anon/authenticated) and
-   staff administration cannot run. **Owner action required.**
+2. **Service-role key (resolved by scope change)** — the owner chose WhatsApp ordering instead of
+   database order writes. Checkout now redirects to WhatsApp; no `orders` INSERT is attempted.
+   The key remains optional and is only needed for privileged staff administration.
 3. **Shared production host** — the deployment must be a new isolated unit on port 5077; no shared
    service is restarted and no shared database is touched.
 

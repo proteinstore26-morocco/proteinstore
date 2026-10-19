@@ -2,14 +2,20 @@
 // Read-only production smoke test. Safe to run against the live store: it never
 // writes to the database, never authenticates, and never places an order.
 // Usage: node scripts/smoke.mjs https://proteinstore.example.com
-const base = (process.argv[2] || process.env.SMOKE_BASE_URL || "http://127.0.0.1:5077").replace(/\/+$/, "");
+const base = (process.argv[2] || process.env.SMOKE_BASE_URL || "http://127.0.0.1:5077").replace(
+  /\/+$/,
+  "",
+);
 
 const checks = [];
 const add = (name, ok, detail = "") => checks.push({ name, ok, detail });
 
 async function get(path) {
   const started = Date.now();
-  const res = await fetch(base + path, { headers: { "accept-encoding": "identity" }, redirect: "manual" });
+  const res = await fetch(base + path, {
+    headers: { "accept-encoding": "identity" },
+    redirect: "manual",
+  });
   const body = await res.text();
   return { status: res.status, body, ms: Date.now() - started, headers: res.headers };
 }
@@ -28,18 +34,34 @@ add("shop SSR under 3s", shop.ms < 3000, `${shop.ms}ms`);
 const checkout = await get("/checkout");
 add("checkout 200", checkout.status === 200, `status=${checkout.status}`);
 add("checkout offers COD", checkout.body.includes("Paiement à la livraison"));
+// Without a browser cart, SSR renders the empty state; the WhatsApp CTA is client-side.
+add(
+  "checkout renders cart or WhatsApp CTA",
+  /Votre panier est vide|Commander sur WhatsApp/.test(checkout.body),
+);
 
 const track = await get("/track-order");
 add("track-order 200", track.status === 200, `status=${track.status}`);
+add("tracking hands off to WhatsApp", track.body.includes("Suivre sur WhatsApp"));
 
 const missing = await get("/this-route-does-not-exist");
 add("unknown route 404", missing.status === 404, `status=${missing.status}`);
 
 if (base.startsWith("https://")) {
-  add("HSTS header", /max-age=\d+/.test(home.headers.get("strict-transport-security") ?? ""), home.headers.get("strict-transport-security") ?? "missing");
+  add(
+    "HSTS header",
+    /max-age=\d+/.test(home.headers.get("strict-transport-security") ?? ""),
+    home.headers.get("strict-transport-security") ?? "missing",
+  );
   add("nosniff header", home.headers.get("x-content-type-options") === "nosniff");
-  add("frame-ancestors / X-Frame-Options", (home.headers.get("x-frame-options") ?? "").toUpperCase().includes("DENY"));
-  add("CSP header", /frame-ancestors 'none'/.test(home.headers.get("content-security-policy") ?? ""));
+  add(
+    "frame-ancestors / X-Frame-Options",
+    (home.headers.get("x-frame-options") ?? "").toUpperCase().includes("DENY"),
+  );
+  add(
+    "CSP header",
+    /frame-ancestors 'none'/.test(home.headers.get("content-security-policy") ?? ""),
+  );
 }
 
 let failed = 0;

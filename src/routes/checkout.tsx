@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { CheckCircle2, Banknote } from "lucide-react";
+import { Banknote, MessageCircle, ShieldCheck } from "lucide-react";
 import { useCart } from "@/lib/cart";
-import { createOrder } from "@/lib/orders.functions";
 import { mad, shippingFor } from "@/lib/pricing";
+import { buildOrderMessage, whatsappUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,37 +17,24 @@ export const Route = createFileRoute("/checkout")({
       { title: "Commande — PROTEIN STORE®" },
       {
         name: "description",
-        content: "Finalisez votre commande, paiement à la livraison partout au Maroc.",
+        content: "Finalisez votre commande sur WhatsApp, paiement à la livraison partout au Maroc.",
       },
       { property: "og:title", content: "Commande — PROTEIN STORE®" },
-      { property: "og:description", content: "Paiement à la livraison partout au Maroc." },
+      {
+        property: "og:description",
+        content: "Commande par WhatsApp, paiement à la livraison partout au Maroc.",
+      },
     ],
   }),
   component: Checkout,
 });
 
 function Checkout() {
-  const { items, subtotal, clear } = useCart();
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const [done, setDone] = useState<string | null>(null);
+  const { items, subtotal } = useCart();
+  const [redirecting, setRedirecting] = useState(false);
   const shipping = shippingFor(subtotal);
 
-  if (done)
-    return (
-      <main className="container-ps section-ps max-w-xl text-center">
-        <CheckCircle2 className="mx-auto size-16 text-primary" />
-        <h1 className="headline mt-6 text-4xl">Commande confirmée !</h1>
-        <p className="mt-4 text-muted-foreground">
-          Votre numéro de commande : <span className="font-mono text-foreground">{done}</span>. Nous
-          vous appellerons pour confirmer la livraison.
-        </p>
-        <Button asChild className="mt-8">
-          <Link to="/track-order">Suivre ma commande</Link>
-        </Button>
-      </main>
-    );
-  if (!items.length)
+  if (!items.length) {
     return (
       <main className="container-ps section-ps text-center">
         <h1 className="headline text-4xl">Votre panier est vide</h1>
@@ -56,48 +43,55 @@ function Checkout() {
         </Button>
       </main>
     );
+  }
 
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setErr("");
-    setBusy(true);
-    const f = new FormData(e.currentTarget);
-    const g = (k: string) => String(f.get(k) ?? "");
-    try {
-      const r = await createOrder({
-        data: {
-          customer_name: g("name"),
-          customer_email: g("email"),
-          customer_phone: g("phone").replace(/\s/g, ""),
-          address: g("address"),
-          city: g("city"),
-          notes: g("notes"),
-          items: items.map((i) => ({ productId: i.productId, qty: i.qty, flavor: i.flavor })),
-        },
-      });
-      if (r.ok) {
-        clear();
-        setDone(r.order_number);
-      } else setErr(r.error);
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : "";
-      setErr(
-        /trop de tentatives/i.test(detail)
-          ? detail
-          : "La commande n'a pas pu être enregistrée. Vérifiez vos informations (téléphone au format 06XXXXXXXX) ou commandez sur WhatsApp.",
-      );
-    }
-    setBusy(false);
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const value = (key: string) => String(form.get(key) ?? "");
+
+    const message = buildOrderMessage({
+      name: value("name"),
+      phone: value("phone"),
+      email: value("email"),
+      city: value("city"),
+      address: value("address"),
+      notes: value("notes"),
+      items: items.map((item) => ({
+        title: item.title,
+        qty: item.qty,
+        unitPrice: item.unitPrice,
+        ...(item.flavor ? { flavor: item.flavor } : {}),
+      })),
+      subtotal,
+      shipping,
+      total: subtotal + shipping,
+    });
+
+    setRedirecting(true);
+    // Same-tab redirect: opens the WhatsApp app on mobile, WhatsApp Web on desktop.
+    window.location.assign(whatsappUrl(message));
   }
 
   return (
     <main className="container-ps section-ps">
       <h1 className="headline text-5xl">Commande</h1>
+      <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
+        Renseignez vos coordonnées : vous serez redirigé vers WhatsApp avec le récapitulatif
+        complet. Notre équipe confirme la livraison et vous payez en espèces à la réception.
+      </p>
       <div className="mt-8 grid gap-10 md:grid-cols-[1fr_380px]">
         <form onSubmit={submit} className="space-y-4">
           <div>
             <Label htmlFor="name">Nom complet *</Label>
-            <Input id="name" name="name" required minLength={2} maxLength={100} />
+            <Input
+              id="name"
+              name="name"
+              required
+              minLength={2}
+              maxLength={100}
+              autoComplete="name"
+            />
           </div>
           <div>
             <Label htmlFor="phone">Téléphone *</Label>
@@ -107,62 +101,77 @@ function Checkout() {
               required
               placeholder="06 XX XX XX XX"
               pattern="^(\+212|0)\s?[5-7](\s?\d){8}$"
+              autoComplete="tel"
             />
           </div>
           <div>
             <Label htmlFor="email">E-mail (optionnel)</Label>
-            <Input id="email" name="email" type="email" maxLength={255} />
+            <Input id="email" name="email" type="email" maxLength={255} autoComplete="email" />
           </div>
           <div>
             <Label htmlFor="city">Ville *</Label>
-            <Input id="city" name="city" required defaultValue="Kénitra" maxLength={80} />
+            <Input
+              id="city"
+              name="city"
+              required
+              defaultValue="Kénitra"
+              maxLength={80}
+              autoComplete="address-level2"
+            />
           </div>
           <div>
             <Label htmlFor="address">Adresse *</Label>
-            <Textarea id="address" name="address" required minLength={5} maxLength={300} />
+            <Textarea
+              id="address"
+              name="address"
+              required
+              minLength={5}
+              maxLength={300}
+              autoComplete="street-address"
+            />
           </div>
           <div>
             <Label htmlFor="notes">Remarques</Label>
-            <Textarea id="notes" name="notes" maxLength={500} />
+            <Textarea
+              id="notes"
+              name="notes"
+              maxLength={500}
+              placeholder="Étage, repère, heure de livraison…"
+            />
           </div>
           <div className="flex items-center gap-3 rounded-lg border border-primary bg-card p-4">
-            <Banknote className="size-6 text-primary" />
+            <Banknote className="size-6 shrink-0 text-primary" />
             <div>
               <p className="font-semibold">Paiement à la livraison</p>
-              <p className="text-sm text-muted-foreground">Vous payez en espèces à la réception.</p>
+              <p className="text-sm text-muted-foreground">
+                Vous payez en espèces à la réception. Aucun paiement en ligne.
+              </p>
             </div>
           </div>
-          {err && (
-            <div
-              role="alert"
-              aria-live="polite"
-              className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive"
-            >
-              <p>{err}</p>
-              <a
-                className="mt-2 inline-block font-medium underline"
-                href="https://wa.me/212776566089"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Commander sur WhatsApp
-              </a>
-            </div>
-          )}
-          <Button type="submit" size="lg" className="w-full" disabled={busy}>
-            {busy ? "Envoi…" : `Confirmer la commande · ${mad(subtotal + shipping)}`}
+          <Button type="submit" size="lg" className="w-full" disabled={redirecting}>
+            <MessageCircle className="mr-2 size-5" />
+            {redirecting
+              ? "Ouverture de WhatsApp…"
+              : `Commander sur WhatsApp · ${mad(subtotal + shipping)}`}
           </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            Numéro de la boutique : <span className="font-mono">{WHATSAPP_DISPLAY}</span>
+          </p>
         </form>
+
         <aside className="h-fit rounded-xl border border-border bg-card p-6">
           <h2 className="font-semibold">Récapitulatif</h2>
           <ul className="mt-4 space-y-3">
-            {items.map((i) => (
-              <li key={i.productId + i.flavor} className="flex justify-between gap-3 text-sm">
+            {items.map((item) => (
+              <li
+                key={item.productId + (item.flavor ?? "")}
+                className="flex justify-between gap-3 text-sm"
+              >
                 <span>
-                  {i.qty} × {i.title}
-                  {i.flavor ? ` (${i.flavor})` : ""}
+                  {item.qty} × {item.title}
+                  {item.flavor ? ` (${item.flavor})` : ""}
                 </span>
-                <span className="shrink-0">{mad(i.qty * i.unitPrice)}</span>
+                <span className="shrink-0">{mad(item.qty * item.unitPrice)}</span>
               </li>
             ))}
           </ul>
@@ -180,6 +189,10 @@ function Checkout() {
               <span>{mad(subtotal + shipping)}</span>
             </p>
           </div>
+          <p className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+            Produits 100 % authentiques. Livraison partout au Maroc, gratuite dès 500 MAD.
+          </p>
         </aside>
       </div>
     </main>

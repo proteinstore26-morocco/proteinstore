@@ -8,13 +8,13 @@ C4Context
   Person(customer, "Client (Maroc)", "Navigue, commande en COD, suit sa commande")
   Person(admin, "Admin / Super Admin", "Gère commandes, produits, partenaires, accès")
   System(web, "Storefront SSR", "TanStack Start / React 19 sur Node 22")
-  System_Ext(cloud, "Lovable Cloud (Supabase-compatible)", "Postgres + RLS + Auth + PostgREST")
+  System_Ext(cloud, "Managed Supabase-compatible backend", "Postgres + RLS + Auth + PostgREST")
   System_Ext(wa, "WhatsApp Business", "Canal de secours et confirmation")
   System_Ext(fonts, "Google Fonts", "Space Grotesk, Inter, JetBrains Mono")
 
   Rel(customer, web, "HTTPS")
   Rel(admin, web, "HTTPS + JWT")
-  Rel(web, cloud, "Server functions (publishable / service role)")
+  Rel(web, cloud, "Server functions (publishable key)")
   Rel(customer, cloud, "Auth + realtime (navigateur, clé publique)")
   Rel(customer, wa, "Commande de secours")
   Rel(web, fonts, "CSS + woff2")
@@ -26,7 +26,7 @@ C4Context
 flowchart LR
   U[Internet] -->|443/80| C[Caddy 2.11<br/>TLS auto]
   C -->|127.0.0.1:5077| N[Node 22<br/>.output/server/index.mjs]
-  N -->|HTTPS + apikey| S[(Lovable Cloud<br/>Postgres/RLS/Auth)]
+  N -->|HTTPS + apikey| S[(the managed backend<br/>Postgres/RLS/Auth)]
   B[Navigateur] -->|HTTPS| C
   B -.->|auth + REST direct| S
   N -. systemd: proteinstore.service .-> N
@@ -34,7 +34,7 @@ flowchart LR
 
 - **Isolation:** new `proteinstore.service` unit, port **5077**, hostname
   `proteinstore.46.225.2.52.sslip.io`. No shared unit is restarted; Caddy reload is graceful.
-- **Build target:** `nitro: { preset: "node-server" }` (the Lovable default, `cloudflare-module`,
+- **Build target:** `nitro: { preset: "node-server" }` (the template default, `cloudflare-module`,
   is useless here because there is no Cloudflare account).
 - **TLS:** Caddy obtains a certificate for the sslip.io name; swapping to `proteinestore.ma`
   only changes the vhost and requires DNS A → `46.225.2.52`.
@@ -47,7 +47,7 @@ flowchart LR
 | Styling | Tailwind CSS 4 + shadcn/ui (new-york) + Radix | Fast dark brand UI, accessible primitives, 40+ components ready. |
 | State | TanStack Query + React context (cart) | Server cache + local cart; no global store needed. |
 | Validation | Zod 3 | Shared client/server schemas, already used by admin and orders. |
-| Data | Lovable Cloud (Postgres + RLS + PostgREST + Auth) | Live data, auth, policies and 58 products already there; rebuilding would be weeks and risk data loss. |
+| Data | the managed backend (Postgres + RLS + PostgREST + Auth) | Live data, auth, policies and 58 products already there; rebuilding would be weeks and risk data loss. |
 | Server runtime | Node 22 + Nitro `node-server` | No Docker on host, systemd-native, small memory footprint. |
 | Reverse proxy | Caddy 2.11 | Already production-grade on the host, automatic TLS, HTTP/3. |
 | Tests | Vitest 4 + Testing Library | Already configured; fast unit tests. |
@@ -92,22 +92,22 @@ proteinstore/
 3. `createCsrfMiddleware` rejects cross-site server-function calls.
 4. zod `inputValidator` rejects malformed payloads.
 5. Handler re-checks authorization (`requireSupabaseAuth` + `user_roles`) and re-computes prices.
-6. Public read paths use the publishable key; privileged writes use the service-role key
-   **inside the handler only** (`await import("@/integrations/supabase/client.server")`).
+6. Public read paths use the publishable key; checkout builds a WhatsApp message client-side and
+   writes nothing to the database.
 
 ## 6. ADRs
 
 | ID | Decision | Status |
 |---|---|---|
 | ADR-001 | Keep TanStack Start instead of rewriting to Next.js | Accepted — repo is source of truth |
-| ADR-002 | Keep Lovable Cloud as the data/auth layer | Accepted — live data, RLS, auth |
+| ADR-002 | Keep the managed backend as the data/auth layer | Accepted — live data, RLS, auth |
 | ADR-003 | Build Node server via `nitro.preset = "node-server"` | Accepted |
 | ADR-004 | COD only, no payment gateway in v1 | Accepted (BA) |
 | ADR-005 | Service-role key server-only, loaded lazily, never in the client bundle | Accepted (Security) |
 | ADR-006 | In-memory rate limiter for public writes | Accepted — single process; revisit at scale |
 | ADR-007 | systemd + Caddy on isolated port 5077/hostname | Accepted (owner) |
 | ADR-008 | Committed `.env` removed from the index; `.env.example` ships instead | Accepted (Security) |
-| ADR-009 | Orders roll back on stock race (`STOCK_RACE`) | Accepted (DB + Dev-4) |
+| ADR-009 | Orders are handed off to WhatsApp; no server-side order writes | Accepted (owner) |
 
 ## 7. CI/CD skeleton
 
@@ -121,4 +121,4 @@ has not provided a deployment token or DNS automation.
 - **Uptime:** `scripts/smoke.mjs` can run from cron or an external monitor every 5 min.
 - **Metrics:** no APM yet. Recommended next step: Sentry (`@sentry/react` + Node) and a
   `/healthz` route.
-- **Cost:** only the existing VPS; Lovable Cloud plan unchanged. No new managed service.
+- **Cost:** only the existing VPS; the managed backend plan unchanged. No new managed service.

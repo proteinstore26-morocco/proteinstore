@@ -1,6 +1,6 @@
 # Phase 2 — Data Model (Database Expert)
 
-Source: live Lovable Cloud Postgres (PostgREST OpenAPI + `src/integrations/supabase/types.ts`)
+Source: live managed Supabase-compatible Postgres (PostgREST OpenAPI + `src/integrations/supabase/types.ts`)
 and `drizzle/migrations/0000_store_schema_and_seed.sql` (reference DDL). **10 tables.**
 
 ## 1. ERD
@@ -184,22 +184,17 @@ CREATE INDEX IF NOT EXISTS campaigns_active_window_idx ON public.campaigns (is_a
 | `user_roles` | none | SELECT own | SELECT all; staff writes via service role |
 | `subscribers` | INSERT only | INSERT only | SELECT |
 
-**Consequence:** creating an order is a privileged server-side write. `src/lib/orders.functions.ts`
-uses the service-role client, validates every input, recomputes prices and shipping, and never
-trusts the client. This is why `SUPABASE_SERVICE_ROLE_KEY` is mandatory for COD.
+**Consequence:** the app never creates orders. Checkout hands the cart to WhatsApp, so the
+`orders` table only holds historical/admin-created rows. There is no public INSERT policy and none
+should be added (see `AGENTS.md`).
 
 ## 5. Concurrency & integrity
 
-- **Overselling:** fixed. Stock is decremented with an optimistic predicate
-  (`UPDATE ... WHERE id = ? AND stock_quantity = <value read>`). Zero rows matched → the order and
-  its items are deleted and the customer gets `STOCK_RACE`. This is not a serializable transaction,
-  but it removes the common double-sell.
-- **Order + items atomicity:** PostgREST has no multi-statement transaction here; the code deletes
-  the order (cascade) if item insertion or stock decrement fails. Residual risk: a network failure
-  between insert and rollback can leave a `pending` order with missing items. Mitigation: a
-  nightly reconciliation query (see runbook).
-- **Idempotency:** not implemented. A double-click creates two orders. Client disables the button
-  while `busy`; a server-side idempotency key is a next-step improvement.
+- **Overselling:** stock is informational only for WhatsApp orders. The shop confirms availability in
+  the chat before dispatch; no online reservation or decrement happens.
+- **Order record:** there is none for WhatsApp orders. The prefilled message is the order; the shop
+  must keep its own record (chat archive, spreadsheet or future WhatsApp Business API integration).
+- **Idempotency:** not applicable; the customer sends one WhatsApp message and the shop confirms it.
 
 ## 6. Seed / reference data
 
@@ -210,8 +205,8 @@ shape; it is **not** applied to the live database automatically.
 
 ## 7. Backup & retention
 
-- Lovable Cloud manages Postgres backups on its plan; **the owner must confirm the retention
-  window** in the Lovable dashboard. This host keeps no database copy.
+- The managed backend handles Postgres backups; **confirm the retention window** in its dashboard.
+  This host keeps no database copy.
 - Recommended: weekly logical export (`pg_dump --data-only`) stored off-host for 30 days.
 - Personal data (name, phone, email, address) is needed only to fulfil the order. Recommended
   retention: 13 months for delivered orders, then anonymise name/phone/address while keeping the

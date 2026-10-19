@@ -31,40 +31,34 @@ flowchart LR
   F --> G[Commande]
   G --> H{Champs valides ?}
   H -- non --> G
-  H -- oui --> I[Serveur : re-prix + stock]
-  I -- stock OK --> J[Commande confirmée PS…]
-  I -- rupture --> K[Message + WhatsApp]
-  J --> L[Suivi de commande]
+  H -- oui --> I[WhatsApp : message prérempli]
+  I --> J[Équipe : confirmation + délai]
+  J --> K[Paiement en espèces à réception]
+  K --> L[Suivi via WhatsApp]
 ```
 
 ```mermaid
 sequenceDiagram
   participant C as Client
-  participant S as ServerFn createOrder
-  participant DB as Supabase (service role)
-  C->>S: items + coordonnées
-  S->>S: zod + rate limit (8/10 min/IP)
-  S->>DB: produits + campagnes
-  DB-->>S: prix/stock/statut
-  S->>S: re-prix, livraison, validation saveur
-  S->>DB: INSERT order (pending)
-  S->>DB: INSERT order_items
-  S->>DB: UPDATE stock WHERE stock = valeur_lue
-  alt 0 ligne mise à jour (course)
-    S->>DB: DELETE order (rollback)
-    S-->>C: STOCK_RACE
-  else succès
-    S-->>C: order_number
-  end
+  participant W as Storefront
+  participant WA as WhatsApp (+212 776 566 089)
+  participant S as Boutique
+  C->>W: panier + coordonnées
+  W->>W: prix, livraison, message prérempli
+  W-->>C: redirection wa.me (même onglet)
+  C->>WA: message envoyé
+  WA->>S: commande lue dans le chat
+  S-->>C: confirmation, disponibilité, délai
+  C-->>S: paiement en espèces à la livraison
 ```
 
 ```mermaid
 stateDiagram-v2
-  [*] --> pending: commande COD créée
-  pending --> confirmed: appel client OK
+  [*] --> pending: commande reçue sur WhatsApp
+  pending --> confirmed: confirmation écrite/téléphone
   pending --> cancelled: client injoignable
   confirmed --> shipped: remise au livreur
-  shipped --> delivered: encaissement COD
+  shipped --> delivered: encaissement en espèces
   shipped --> cancelled: refus à la livraison
   delivered --> [*]
   cancelled --> [*]
@@ -126,7 +120,8 @@ textarea, tooltip, etc. — new-york style, lucide icons.
 - Every interactive icon has `aria-label`; product/cart images have `alt`.
 - Form fields use `<Label htmlFor>`, `required`, `minLength`, `pattern` and native validation.
 - Cart and editor dialogs are Radix Dialog/Sheet → focus trap + `Esc` + focus return.
-- Checkout errors are announced (`role="alert"`, `aria-live="polite"`) and offer a WhatsApp fallback.
+- Checkout and tracking rely on native HTML validation and clearly labelled WhatsApp CTAs; the
+  redirect is same-tab, so no pop-up blocker is involved.
 - Admin tables scroll horizontally rather than clipping; tables have header cells.
 - Motion is disabled under `prefers-reduced-motion`.
 - Contrast: white on `oklch(0.13)` ≈ 18:1; primary red on white ≈ 5.2:1; muted text ≈ 7:1.
