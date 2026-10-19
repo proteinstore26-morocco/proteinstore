@@ -1,5 +1,7 @@
 # Phase 5 — Runbook & Operations (Architect + QA)
 
+A separate test instance runs on port 5078 — see [08-staging.md](08-staging.md).
+
 ## 1. What is deployed
 
 | Item | Value |

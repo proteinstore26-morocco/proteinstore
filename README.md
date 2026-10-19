@@ -122,6 +122,7 @@ See [`docs/07-runbook.md`](docs/07-runbook.md).
 - [Security review & threat model](docs/05-security.md)
 - [QA plan & results](docs/06-qa.md)
 - [Runbook, rollback, roadmap](docs/07-runbook.md)
+- [Test / staging instance](docs/08-staging.md)
 
 ## Known limitations
 
