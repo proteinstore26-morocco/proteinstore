@@ -1,64 +1,115 @@
-# Proteinstore
+# PROTEIN STORE® Kénitra — storefront & administration
 
-4 Questions Answered
+Sports-nutrition storefront for Kénitra, Morocco: catalogue, product pages, cart, **cash-on-delivery
+checkout**, order tracking, partner gyms, customer accounts and a role-gated back office.
 
-1. Language handling for the UI?
+**Live:** https://proteinstore.46.225.2.52.sslip.io
 
-   French-only copy, RTL-safe layout, no language switcher (Recommended)
+> **Checkout status:** the storefront is live. COD order creation is **temporarily disabled**
+> because the server-only `SUPABASE_SERVICE_ROLE_KEY` has not been supplied. The UI falls back to
+> WhatsApp with an explicit message. See [Known limitations](#known-limitations).
 
-2. How should I sequence this build? (Backend + full storefront + full admin is a very large surface.)
+## Stack
 
-   Everything in one pass (backend, storefront, cart/checkout, auth, full admin)
+- React 19 + TypeScript (strict) + TanStack Start/Router 1.170
+- Tailwind CSS 4 + shadcn/ui (new-york) + Radix, dark brand theme
+- Zod validation, TanStack Query, localStorage cart
+- Lovable Cloud (Supabase-compatible Postgres + RLS + Auth) as the backend
+- Node 22 + Nitro `node-server` behind Caddy 2.11 (systemd)
 
-3. Payment methods at checkout?
+## Quick start
 
-   COD only (Paiement à la livraison) — no card, no Stripe (Recommended)
+```bash
+cp .env.example .env      # fill in the Supabase values; add the service-role key for checkout
+chmod 600 .env
 
-4. Product and gym-logo imagery for seed data?
-
-   use our instagram page : https://www.instagram.com/proteinestore?cplk=NGNxY3ozb2drejVx&utm_source=qr
-Whatsapp business  +212776566089
-
-I'll explore the current project structure before planning this large build.
-
-This is a large build on a bare template (React 19 + RR v7 + Tailwind 3 + Tailwind Animate, no backend connected yet). Before writing the plan, four decisions shape the work significantly.
-Backend (live, but currently paused)
-12 tables with RLS enabled in the same migrations that created them: products, categories, variants, orders, order_items, campaigns, partners, carousels, profiles, reviews, plus site_settings and subscribers (needed for a working settings page and newsletter). Verified via policy counts on every table.
-Public media bucket (products/partners/banners), writes restricted to admins.
-profiles auto-created by trigger; admin@proteinestore.ma becomes admin on signup; a trigger blocks role escalation.
-Backend functions create-order (prices, campaign discounts, shipping and stock recomputed server-side) and track-order (order number + phone must match). Exercised directly: valid order → 200 with correct totals, out-of-stock → 409, invalid payload → 400, wrong phone → 404.
-Seed: 6 rayons, 21 products with real prices/variants/nutrition/images, 9 Kénitra gyms, 4 campaigns (one live for the countdown), 3 carousels, 30 verified reviews, 10 orders across every status, store settings.
-Storefront + admin
-
-Home (all 13 sections, including the two-row partner marquee with grayscale→color hover, red glow and reduced-motion fallback), shop with full filters/sort/load-more, product detail (gallery, variants, tabs, reviews), cart drawer, 4-step COD checkout, confirmation with confetti, track order, partners, about, contact, auth and account; admin with dashboard charts, products (bulk actions + inline price/stock), categories, orders (status flow, notes, print), campaigns, carousels, partners, customers, analytics and settings. Admin is code-split and guarded by role, with RLS as the real gate.
-
-Blocked by infrastructure
-
-Your Cloud instance is currently paused ("instance status is pausing"), so products/orders/stocks don't load right now — this is why the shop screenshots show empty cards. Every network attempt to the backend host is refused. Resume it (it's an instance-level action, not something I can trigger) and the data comes back immediately.
-
-Because of that pause I could not re-verify these after the pause started: UI checkout end-to-end, post-deploy integer price rounding (client and function now both round to whole dirhams), and the admin screens with live rows. Everything else was verified with real data beforehand.
-
-I also added a request timeout so a stalled backend shows a "Catalogue indisponible / Réessayer" state instead of endless skeletons.
-
-This project was built with [Lovable](https://lovable.dev).
-
-**Live app**: https://proteinstore.lovable.app
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/e1681b59-920c-4e0e-ba7c-09f81ac5c1d2).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+npm install --legacy-peer-deps   # npm 10.9 peer-resolution bug on this dependency graph
+npm run dev                      # Vite dev server (prints its URL)
 ```
+
+If your shell exports `NODE_ENV=production`, add `--include=dev` to the install command.
+
+```bash
+npm test            # 14 unit tests (pricing, RBAC, rate limiting, routing)
+npx tsc --noEmit    # strict type-check
+npm run build       # → .output/server/index.mjs
+node .output/server/index.mjs   # production server on $PORT (default 3000)
+```
+
+## Environment variables
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `SUPABASE_URL` | server | PostgREST/Auth base URL |
+| `SUPABASE_PUBLISHABLE_KEY` | server | public key for catalogue reads |
+| `SUPABASE_SERVICE_ROLE_KEY` | **server only** | RLS-bypassing key: COD order creation, staff admin |
+| `VITE_SUPABASE_URL` | build-time | same URL inlined in the browser bundle |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | build-time | public key inlined in the browser bundle |
+
+`VITE_*` values are baked in at build time. Never prefix the service-role key with `VITE_`.
+`.env` is git-ignored; `.env.example` documents the shape.
+
+## Back office
+
+`/auth` → sign in with an admin account → `/admin`.
+
+- **Orders:** status (`pending → confirmed → shipped → delivered / cancelled`) + internal notes.
+- **Products:** price, sale price, stock, low-stock threshold, publication, flavours.
+- **Partners:** gyms, discount codes, links, display order.
+- **Staff (Super Admin only):** list, grant and revoke admin access; self- and Super-Admin accounts
+  are protected.
+
+Authorization is enforced **server-side** on every function by `user_roles` + RLS; the UI guard is
+only a convenience.
+
+## Deployment
+
+See [`docs/07-runbook.md`](docs/07-runbook.md) for the full procedure.
+
+```bash
+./deploy/deploy.sh   # install, typecheck, test, build, restart the isolated unit, smoke test
+```
+
+- Unit: `deploy/proteinstore.service` → `/etc/systemd/system/proteinstore.service` (port 5077)
+- Vhost: `deploy/Caddyfile.snippet` → appended to `/etc/caddy/Caddyfile`, then `caddy reload`
+- Health/smoke: `node scripts/smoke.mjs https://proteinstore.46.225.2.52.sslip.io`
+
+## Quality
+
+| Check | Result |
+|---|---|
+| `tsc --noEmit` | ✅ |
+| `npm test` | ✅ 14/14 |
+| `npm run build` | ✅ |
+| Production smoke (15 checks) | ✅ 15/15 |
+| `npm run lint` | ❌ 964 **pre-existing** Prettier violations; files touched by this delivery are clean |
+| WCAG 2.2 AA certification | ❌ not audited with axe |
+| COD order E2E | ⛔ blocked on the service-role key |
+
+## Documentation
+
+- [Intake & assumptions](docs/00-intake.md)
+- [Requirements, personas, MoSCoW backlog](docs/01-requirements.md)
+- [UX flows, design tokens, accessibility](docs/02-ux-ui.md)
+- [Architecture, ADRs, CI/CD](docs/03-architecture.md)
+- [Data model, RLS, integrity](docs/04-data-model.md)
+- [Security review & threat model](docs/05-security.md)
+- [QA plan & results](docs/06-qa.md)
+- [Runbook, rollback, roadmap](docs/07-runbook.md)
+
+## Known limitations
+
+1. **COD checkout disabled** until `SUPABASE_SERVICE_ROLE_KEY` is set (RLS has no INSERT policy on
+   `orders`; this is intentional).
+2. No browser E2E and no automated accessibility audit.
+3. In-memory rate limiting (single process, resets on restart).
+4. No admin audit log, no MFA, no idempotency key.
+5. French only; no Arabic/RTL.
+6. `drizzle/` is reference DDL, not applied at runtime.
+
+## Built with Lovable
+
+This project was built with [Lovable](https://lovable.dev) and remains connected to
+[the editor](https://lovable.dev/projects/e1681b59-920c-4e0e-ba7c-09f81ac5c1d2). Avoid rewriting
+published history; keep the connected branch working. The original live app was
+https://proteinstore.lovable.app.

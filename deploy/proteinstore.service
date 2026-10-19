@@ -1,0 +1,35 @@
+[Unit]
+Description=Protein Store Kénitra (TanStack Start, self-hosted Node)
+Documentation=file:/root/Said/proteinstore/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/root/Said/proteinstore
+EnvironmentFile=/root/Said/proteinstore/.env
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=5077
+ExecStart=/usr/bin/node .output/server/index.mjs
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+KillSignal=SIGTERM
+
+# Hardening: the app only needs to read its build and reach the network.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryMax=768M
+
+[Install]
+WantedBy=multi-user.target

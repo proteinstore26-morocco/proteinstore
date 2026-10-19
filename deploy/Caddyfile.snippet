@@ -1,0 +1,20 @@
+# Protein Store — Caddy route (append to /etc/caddy/Caddyfile, then `caddy reload`).
+# TLS is automatic; sslip.io resolves to this host's IP. Replace the host with the
+# real domain once DNS points here.
+proteinstore.46.225.2.52.sslip.io {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		# TanStack Start hydrates with inline scripts, so 'unsafe-inline' is required
+		# until a nonce-based policy is wired through the server entry.
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https: wss:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+		-Server
+	}
+
+	reverse_proxy 127.0.0.1:5077
+}

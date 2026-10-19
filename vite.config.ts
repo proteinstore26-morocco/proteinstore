@@ -7,6 +7,9 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  // Self-hosted target: emit a plain Node server (`.output/server/index.mjs`)
+  // instead of the default Cloudflare Worker bundle, so Caddy can proxy to it.
+  nitro: { preset: "node-server" },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
