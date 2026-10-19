@@ -16,6 +16,9 @@ rm -rf .output.prev
 [ -d .output ] && cp -a .output .output.prev
 npm run build
 
+echo "==> backup orders"
+node scripts/backup-orders.mjs
+
 echo "==> restart (our unit only)"
 systemctl restart proteinstore
 sleep 2

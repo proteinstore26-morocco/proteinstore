@@ -42,7 +42,17 @@ add(
 
 const track = await get("/track-order");
 add("track-order 200", track.status === 200, `status=${track.status}`);
-add("tracking hands off to WhatsApp", track.body.includes("Suivre sur WhatsApp"));
+add("tracking shows lookup form", track.body.includes("Suivi de commande") && track.body.includes("N° de commande"));
+
+const sitemap = await get("/sitemap.xml");
+add("sitemap 200", sitemap.status === 200, `status=${sitemap.status}`);
+add("sitemap is valid XML", sitemap.body.includes("<urlset") && sitemap.body.includes("/product/"));
+
+const robots = await get("/robots.txt");
+add("robots declares sitemap", robots.body.includes("Sitemap:"));
+
+const admin = await get("/admin");
+add("admin shell 200", admin.status === 200, `status=${admin.status}`);
 
 const missing = await get("/this-route-does-not-exist");
 add("unknown route 404", missing.status === 404, `status=${missing.status}`);

@@ -5,19 +5,19 @@
 ```mermaid
 C4Context
   title Protein Store — system context
-  Person(customer, "Client (Maroc)", "Navigue, commande en COD, suit sa commande")
-  Person(admin, "Admin / Super Admin", "Gère commandes, produits, partenaires, accès")
-  System(web, "Storefront SSR", "TanStack Start / React 19 sur Node 22")
-  System_Ext(cloud, "Managed Supabase-compatible backend", "Postgres + RLS + Auth + PostgREST")
-  System_Ext(wa, "WhatsApp Business", "Canal de secours et confirmation")
-  System_Ext(fonts, "Google Fonts", "Space Grotesk, Inter, JetBrains Mono")
+  Person(customer, "Client (Maroc)", "Commande en COD, suit sa commande")
+  Person(admin, "Admin / Super Admin", "Commandes, clients, factures, SEO")
+  System(web, "Storefront + Admin SSR", "TanStack Start / React 19 sur Node 22")
+  System(orderdb, "Order store", "SQLite local (node:sqlite)")
+  System_Ext(cloud, "Managed Supabase-compatible backend", "Catalogue + Auth + RLS + roles")
+  System_Ext(wa, "WhatsApp Business", "Canal de commande et de notification")
 
   Rel(customer, web, "HTTPS")
   Rel(admin, web, "HTTPS + JWT")
-  Rel(web, cloud, "Server functions (publishable key)")
-  Rel(customer, cloud, "Auth + realtime (navigateur, clé publique)")
-  Rel(customer, wa, "Commande de secours")
-  Rel(web, fonts, "CSS + woff2")
+  Rel(web, orderdb, "Ordres, clients, factures, événements")
+  Rel(web, cloud, "Catalogue (publishable key), JWT, rôles")
+  Rel(web, wa, "Messages préremplis (wa.me)")
+  Rel(customer, wa, "Envoie la commande")
 ```
 
 ## 2. Runtime topology (this host)
@@ -26,99 +26,121 @@ C4Context
 flowchart LR
   U[Internet] -->|443/80| C[Caddy 2.11<br/>TLS auto]
   C -->|127.0.0.1:5077| N[Node 22<br/>.output/server/index.mjs]
-  N -->|HTTPS + apikey| S[(the managed backend<br/>Postgres/RLS/Auth)]
+  N -->|SQLite WAL| D[(data/proteinstore.db)]
+  N -->|HTTPS + apikey| S[(Managed backend<br/>catalogue/auth/roles)]
   B[Navigateur] -->|HTTPS| C
-  B -.->|auth + REST direct| S
-  N -. systemd: proteinstore.service .-> N
+  B -.->|auth directe| S
+  B -->|wa.me prérempli| W[WhatsApp]
 ```
 
-- **Isolation:** new `proteinstore.service` unit, port **5077**, hostname
-  `proteinstore.46.225.2.52.sslip.io`. No shared unit is restarted; Caddy reload is graceful.
-- **Build target:** `nitro: { preset: "node-server" }` (the template default, `cloudflare-module`,
-  is useless here because there is no Cloudflare account).
-- **TLS:** Caddy obtains a certificate for the sslip.io name; swapping to `proteinestore.ma`
-  only changes the vhost and requires DNS A → `46.225.2.52`.
+- **Isolation:** `proteinstore.service`, port **5077**, `ReadWritePaths=/root/Said/proteinstore/data`.
+- **Build:** Nitro `node-server`; no Cloudflare.
+- **TLS:** Caddy; target domain `proteinestore.pro` prepared in `deploy/Caddyfile.snippet`.
 
 ## 3. Stack decisions
 
 | Layer | Choice | Justification |
 |---|---|---|
-| UI | React 19 + TypeScript 5.9, TanStack Router/Start 1.170 | Already in the repo; file-based routing, SSR, server functions, typed loaders. |
-| Styling | Tailwind CSS 4 + shadcn/ui (new-york) + Radix | Fast dark brand UI, accessible primitives, 40+ components ready. |
-| State | TanStack Query + React context (cart) | Server cache + local cart; no global store needed. |
-| Validation | Zod 3 | Shared client/server schemas, already used by admin and orders. |
-| Data | the managed backend (Postgres + RLS + PostgREST + Auth) | Live data, auth, policies and 58 products already there; rebuilding would be weeks and risk data loss. |
-| Server runtime | Node 22 + Nitro `node-server` | No Docker on host, systemd-native, small memory footprint. |
-| Reverse proxy | Caddy 2.11 | Already production-grade on the host, automatic TLS, HTTP/3. |
-| Tests | Vitest 4 + Testing Library | Already configured; fast unit tests. |
-| CI | GitHub Actions (proposed) | Install, unit tests, build on every push. |
+| UI | React 19 + TS 5.9, TanStack Router/Start 1.170 | SSR, typed loaders, server functions, file routing. |
+| Styling | Tailwind 4 + shadcn/ui + Radix | Fast dark brand UI, accessible primitives. |
+| State | TanStack Query + cart context | Server cache + local cart. |
+| Validation | Zod | Shared server-side schemas for orders and admin writes. |
+| Orders | **Node 22 `node:sqlite`** | No new service, no Docker, no service-role key; ACID transactions. |
+| Catalogue/auth | Managed Supabase-compatible Postgres + RLS | 58 products, auth and roles already live; no migration. |
+| Runtime | Node 22 + Nitro `node-server` | systemd-native, ~50 MB RSS. |
+| Proxy | Caddy 2.11 | TLS, HTTP/3, headers. |
+| Messaging | WhatsApp deep links (`wa.me`) | No Business API onboarding; every action produces a prefilled message. |
 
-**Rejected:** self-hosted Postgres (no Docker, RLS/auth rewrite), Cloudflare Workers (no account,
-and the app needs Node-compatible SSR), Vercel (owner asked for this host), card gateways (COD-only
-decision).
+**Rejected:** Supabase order writes without a service key (impossible under RLS); permissive `orders`
+INSERT policy (unsafe); self-hosted Postgres (no Docker, auth rewrite).
 
 ## 4. Folder structure
 
 ```
 proteinstore/
 ├── src/
-│   ├── routes/                 # file-based pages (+ _authenticated guard)
-│   ├── components/
-│   │   ├── site/               # Layout, ProductCard, Countdown, PartnerMarquee
-│   │   ├── admin/Editors.tsx   # dialog forms
-│   │   └── ui/                 # shadcn primitives
+│   ├── routes/
+│   │   ├── _authenticated/admin.tsx        # dashboard: overview/orders/customers/invoices/SEO
+│   │   ├── _authenticated/admin.store.tsx  # catalogue, partners, staff
+│   │   ├── checkout.tsx                    # form → createOrder → WhatsApp redirect
+│   │   └── track-order.tsx                 # real tracking timeline
+│   ├── components/admin/                   # Orders/Customers/Invoices/SEO panels, invoice, WhatsApp modal
 │   ├── lib/
-│   │   ├── catalog.functions.ts  # public server functions
-│   │   ├── orders.functions.ts   # COD create + tracking (rate-limited)
-│   │   ├── admin.functions.ts    # RBAC server functions
-│   │   ├── rate-limit.server.ts  # in-memory limiter (server only)
-│   │   ├── pricing.ts            # pure pricing rules (unit-tested)
-│   │   ├── cart.tsx              # localStorage cart
-│   │   └── admin-rules.ts        # pure RBAC predicates (unit-tested)
-│   ├── integrations/supabase/  # generated clients (do not hand-edit)
-│   ├── test/                   # vitest suites
-│   └── styles.css              # design tokens
-├── deploy/                     # systemd unit + Caddy snippet
-├── scripts/smoke.mjs           # read-only production smoke test
-├── docs/                       # this delivery's documentation
-├── drizzle/                    # reference schema/migrations (not used at runtime)
-└── .output/                    # build artefact (node server)
+│   │   ├── order-store.server.ts           # SQLite schema + repository (orders/items/events/invoices)
+│   │   ├── order-types.ts                  # shared types/enums
+│   │   ├── orders.functions.ts             # public create + tracking (rate-limited)
+│   │   ├── store.functions.ts              # admin APIs (orders/customers/invoices/stats)
+│   │   ├── seo.functions.ts                # SEO audit (admin)
+│   │   ├── seo.ts                          # scoring + JSON-LD
+│   │   ├── whatsapp.ts                     # message builders (order/status/invoice/payment)
+│   │   ├── phone.ts                        # Moroccan phone normalization
+│   │   ├── admin-guard.server.ts           # role check for admin server functions
+│   │   └── rate-limit.ts                   # in-memory public rate limits
+│   └── test/                               # 40 unit tests
+├── data/                                   # SQLite database (git-ignored, writable by the unit)
+├── deploy/                                 # systemd, Caddy, deploy script
+├── scripts/                                # smoke, sitemap, order backup
+└── docs/
 ```
 
-## 5. Request flow (server function)
+## 5. Order write path
 
-1. Browser calls `/__serverFn/...` with an optional Supabase JWT.
-2. `attachSupabaseAuth` (client middleware) attaches `Authorization: Bearer <jwt>`.
-3. `createCsrfMiddleware` rejects cross-site server-function calls.
-4. zod `inputValidator` rejects malformed payloads.
-5. Handler re-checks authorization (`requireSupabaseAuth` + `user_roles`) and re-computes prices.
-6. Public read paths use the publishable key; checkout builds a WhatsApp message client-side and
-   writes nothing to the database.
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant F as createOrder (server fn)
+  participant S as Managed backend
+  participant DB as SQLite
+  participant W as WhatsApp
+  C->>F: items (slug/qty/flavor) + customer
+  F->>F: zod + rate limit (8/10 min/IP)
+  F->>S: products + active campaigns (publishable key)
+  S-->>F: prices, stock, campaign
+  F->>F: server-side price/shipping recalculation
+  F->>DB: BEGIN IMMEDIATE → order + items + event → COMMIT
+  F->>DB: log WhatsApp message
+  F-->>C: orderNumber + wa.me URL
+  C->>W: redirect (prefilled message)
+```
 
-## 6. ADRs
+The order is stored **before** the redirect, so tracking, invoices and admin actions work even if the
+customer never sends the message. Stock is checked but not decremented: the shop confirms availability in
+the chat.
+
+## 6. Admin request path
+
+1. `_authenticated` guard ensures a Supabase session.
+2. Client calls admin server functions; `attachSupabaseAuth` adds the JWT.
+3. `requireSupabaseAuth` verifies the token; `requireStoreAdmin` reloads `user_roles` per call.
+4. Handler reads/writes SQLite through prepared statements (no raw SQL interpolation).
+5. Mutations return `{ data, whatsapp: { phone, message, url } }`; the UI opens the message and the message
+   is logged in `whatsapp_messages` + `order_events`.
+
+## 7. ADRs
 
 | ID | Decision | Status |
 |---|---|---|
-| ADR-001 | Keep TanStack Start instead of rewriting to Next.js | Accepted — repo is source of truth |
-| ADR-002 | Keep the managed backend as the data/auth layer | Accepted — live data, RLS, auth |
-| ADR-003 | Build Node server via `nitro.preset = "node-server"` | Accepted |
-| ADR-004 | COD only, no payment gateway in v1 | Accepted (BA) |
-| ADR-005 | Service-role key server-only, loaded lazily, never in the client bundle | Accepted (Security) |
-| ADR-006 | In-memory rate limiter for public writes | Accepted — single process; revisit at scale |
-| ADR-007 | systemd + Caddy on isolated port 5077/hostname | Accepted (owner) |
-| ADR-008 | Committed `.env` removed from the index; `.env.example` ships instead | Accepted (Security) |
-| ADR-009 | Orders are handed off to WhatsApp; no server-side order writes | Accepted (owner) |
+| ADR-001 | Keep TanStack Start | Accepted |
+| ADR-002 | Keep the managed data/auth layer for catalogue/auth | Accepted |
+| ADR-003 | Nitro `node-server` build | Accepted |
+| ADR-004 | COD only | Accepted |
+| ADR-005 | No public `orders` INSERT in the managed backend | Accepted |
+| ADR-006 | In-memory rate limiter for public writes | Accepted (single process) |
+| ADR-007 | systemd + Caddy on isolated 5077 | Accepted |
+| ADR-008 | `.env` untracked, `.env.example` ships | Accepted |
+| ADR-009 | **Local SQLite order store** (`node:sqlite`) for orders/customers/invoices | Accepted — no service key, ACID, single host |
+| ADR-010 | Every customer-facing admin action produces a WhatsApp message; admin opens it | Accepted — no Business API required |
+| ADR-011 | Public tracking reads the same event log the admin writes | Accepted |
 
-## 7. CI/CD skeleton
+## 8. CI/CD
 
-`.github/workflows/ci.yml` is included: Node 22, `npm ci --legacy-peer-deps`, unit tests,
-production build. Deployment stays manual on this host (`deploy/` + runbook) because the owner
-has not provided a deployment token or DNS automation.
+`.github/workflows/ci.yml`: `npm ci --legacy-peer-deps`, `tsc --noEmit`, `npm test`, `npm run build`
+(includes sitemap), non-blocking lint/audit. Deployment stays manual (`deploy/deploy.sh`) on this host.
 
-## 8. Observability & cost
+## 9. Observability & cost
 
-- **Logs:** `journalctl -u proteinstore`; Caddy access logs in `journalctl -u caddy`.
-- **Uptime:** `scripts/smoke.mjs` can run from cron or an external monitor every 5 min.
-- **Metrics:** no APM yet. Recommended next step: Sentry (`@sentry/react` + Node) and a
-  `/healthz` route.
-- **Cost:** only the existing VPS; the managed backend plan unchanged. No new managed service.
+- Logs: `journalctl -u proteinstore` (server errors include `[orders]`, `[ui]` tags).
+- Smoke: `scripts/smoke.mjs` (21 checks) for cron/external monitor.
+- Backups: `scripts/backup-orders.mjs` (14 daily snapshots).
+- No APM yet; Sentry is the recommended next step.
+- Cost: existing VPS + managed backend plan; SQLite adds no service.

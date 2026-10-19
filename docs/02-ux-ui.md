@@ -11,7 +11,8 @@
 /track-order          Suivi — n° commande + téléphone (aucune donnée sans les deux)
 /auth                 Connexion / inscription
 /account 🔒           Compte client
-/admin 🔒             Administration (commandes, produits, partenaires, accès Super Admin)
+/admin 🔒             Tableau de bord (commandes, clients, factures, SEO)
+/admin/store 🔒       Catalogue, partenaires, accès Super Admin
 /partners             Salles partenaires
 /about                Histoire, valeurs
 /contact              Contact, WhatsApp, adresse
@@ -31,20 +32,23 @@ flowchart LR
   F --> G[Commande]
   G --> H{Champs valides ?}
   H -- non --> G
-  H -- oui --> I[WhatsApp : message prérempli]
+  H -- oui --> I[Commande enregistrée + message WhatsApp]
   I --> J[Équipe : confirmation + délai]
   J --> K[Paiement en espèces à réception]
-  K --> L[Suivi via WhatsApp]
+  K --> L[Suivi temps réel /track-order]
 ```
 
 ```mermaid
 sequenceDiagram
   participant C as Client
   participant W as Storefront
+  participant DB as SQLite
   participant WA as WhatsApp (+212 776 566 089)
   participant S as Boutique
   C->>W: panier + coordonnées
-  W->>W: prix, livraison, message prérempli
+  W->>W: prix, livraison
+  W->>DB: INSERT commande + lignes + événement
+  W->>W: message prérempli + n° de commande
   W-->>C: redirection wa.me (même onglet)
   C->>WA: message envoyé
   WA->>S: commande lue dans le chat
@@ -120,8 +124,8 @@ textarea, tooltip, etc. — new-york style, lucide icons.
 - Every interactive icon has `aria-label`; product/cart images have `alt`.
 - Form fields use `<Label htmlFor>`, `required`, `minLength`, `pattern` and native validation.
 - Cart and editor dialogs are Radix Dialog/Sheet → focus trap + `Esc` + focus return.
-- Checkout and tracking rely on native HTML validation and clearly labelled WhatsApp CTAs; the
-  redirect is same-tab, so no pop-up blocker is involved.
+- Checkout and tracking rely on native HTML validation; checkout redirects same-tab after the order is
+  stored, and tracking renders a status timeline with text labels (not colour alone).
 - Admin tables scroll horizontally rather than clipping; tables have header cells.
 - Motion is disabled under `prefers-reduced-motion`.
 - Contrast: white on `oklch(0.13)` ≈ 18:1; primary red on white ≈ 5.2:1; muted text ≈ 7:1.

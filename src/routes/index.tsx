@@ -8,6 +8,7 @@ import { PartnerMarquee } from "@/components/site/PartnerMarquee";
 import { Countdown } from "@/components/site/Countdown";
 import { Button } from "@/components/ui/button";
 import { whatsappUrl } from "@/lib/whatsapp";
+import { organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -41,6 +42,14 @@ function Home() {
   const featured = products.filter((p) => p.is_featured).slice(0, 4);
   return (
     <main>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd()) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd()) }}
+      />
       <section className="relative overflow-hidden">
         <img
           src={hero}

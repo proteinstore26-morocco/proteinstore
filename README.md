@@ -1,36 +1,56 @@
-# PROTEIN STORE® Kénitra — storefront & administration
+# PROTEIN STORE® Kénitra — storefront, admin & order backend
 
-Sports-nutrition storefront for Kénitra, Morocco: catalogue, product pages, cart, **WhatsApp
-ordering with cash on delivery**, order follow-up, partner gyms, customer accounts and a
-role-gated back office.
+Sports-nutrition storefront for Kénitra, Morocco: catalogue, product pages, cart, WhatsApp checkout with
+cash on delivery, **real order tracking**, customer accounts, and a role-gated administration dashboard
+with orders, customers, invoices, tracking and SEO auditing.
 
 **Live:** https://proteinstore.46.225.2.52.sslip.io
-**Target domain:** `proteinestore.pro` (vhost ready in `deploy/Caddyfile.snippet`; add the DNS
-A record → `46.225.2.52`, then enable that block).
+**Target domain:** `proteinestore.pro` (vhost ready in `deploy/Caddyfile.snippet`; add the DNS A record →
+`46.225.2.52`, then enable that block).
 
 ## How ordering works
 
-1. The customer builds a cart.
-2. On `/checkout` they enter name, phone, city, address and notes.
-3. Submitting **redirects to WhatsApp** (`+212 776 566 089`) with a prefilled message containing
-   every line item, quantities, the total and the delivery details.
-4. The shop confirms delivery and payment in the chat. **Cash on delivery only.**
+1. Customer builds a cart.
+2. `/checkout` validates the form and **creates a local order** (SQLite): server-side re-pricing from the
+   live catalogue, campaign discounts, shipping, an order number (`PS-YYYY-NNNNN`) and a WhatsApp message.
+3. The browser redirects to WhatsApp with the full order prefilled, addressed to `+212 776 566 089`.
+4. The shop confirms and delivers; the admin moves the order through
+   `pending → confirmed → shipped → delivered` (or `cancelled`). **Every customer-facing action generates a
+   WhatsApp message** to the customer's own number, which the admin opens in one click.
+5. The customer tracks the order at `/track-order` with the order number and phone.
 
-No order is written to the database: there is no `orders` INSERT path and no service-role key
-required for the storefront. `/track-order` hands the conversation to WhatsApp as well.
+Orders, customers and invoices live in `data/proteinstore.db` (Node's built-in SQLite). No Supabase write,
+no service-role key. The Supabase-compatible backend is only used for catalogue, auth and roles.
+
+## Admin dashboard
+
+`/auth` → sign in as `admin` / `super_admin` → `/admin`.
+
+- **Overview:** revenue, orders, customers, average basket, pending queue, recent orders, top products.
+- **Orders:** filters/search, full detail, status flow, internal notes, event history, invoice generation.
+- **Customers:** aggregated by phone (orders, total spent, last order), order history, free WhatsApp message.
+- **Invoices:** sequential `FAC-YYYY-NNNNN`, printable/PDF view, paid/void actions, WhatsApp resend.
+- **Tracking:** the public tracking timeline is fed by the same events; the admin can drive it by status.
+- **SEO:** global score, product-level issues (title length, description, images, slug, brand, category, price,
+  stock), duplicate titles, sitemap/robots/JSON-LD checks, links to live product pages.
+- **Catalogue & partners:** `/admin/store` keeps products, partners, categories and staff management.
+
+WhatsApp messages are generated for: order creation, each status change, invoice issue, payment receipt,
+invoice void, and free-form customer messages. Every message is logged in `whatsapp_messages`.
 
 ## Stack
 
 - React 19 + TypeScript (strict) + TanStack Start/Router 1.170
 - Tailwind CSS 4 + shadcn/ui (new-york) + Radix, dark brand theme
 - TanStack Query, Zod, localStorage cart
-- Managed Supabase-compatible Postgres + RLS + Auth for the catalogue, accounts and admin
-- Node 22 + Nitro `node-server` behind Caddy 2.11 (systemd)
+- **Node 22 + `node:sqlite`** for orders/customers/invoices/tracking
+- Supabase-compatible managed Postgres + RLS + Auth for catalogue, accounts and roles
+- Nitro `node-server` behind Caddy 2.11 (systemd)
 
 ## Quick start
 
 ```bash
-cp .env.example .env      # fill in the backend URL + publishable key
+cp .env.example .env      # backend URL + publishable key
 chmod 600 .env
 
 npm install --legacy-peer-deps   # npm 10.9 peer-resolution bug on this dependency graph
@@ -40,10 +60,10 @@ npm run dev                      # Vite dev server (prints its URL)
 If your shell exports `NODE_ENV=production`, add `--include=dev` to the install command.
 
 ```bash
-npm test            # 15 unit tests (pricing, RBAC, routing, WhatsApp messages)
+npm test            # 40 unit tests (store, pricing, RBAC, WhatsApp, SEO, phones)
 npx tsc --noEmit    # strict type-check
-npm run build       # → .output/server/index.mjs
-node .output/server/index.mjs   # production server on $PORT (default 3000)
+npm run build       # → .output/server/index.mjs + public/sitemap.xml (postbuild)
+node .output/server/index.mjs   # production server on $PORT
 ```
 
 ## Environment variables
@@ -52,49 +72,45 @@ node .output/server/index.mjs   # production server on $PORT (default 3000)
 |---|---|---|
 | `SUPABASE_URL` | server | PostgREST/Auth base URL |
 | `SUPABASE_PUBLISHABLE_KEY` | server | public key for catalogue reads |
-| `SUPABASE_SERVICE_ROLE_KEY` | server only, **optional** | privileged staff administration; not used by checkout |
-| `VITE_SUPABASE_URL` | build-time | same URL inlined in the browser bundle |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | build-time | public key inlined in the browser bundle |
+| `SUPABASE_SERVICE_ROLE_KEY` | server only, **optional** | staff administration only; not used by orders |
+| `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` | build-time | inlined in the browser bundle |
+| `VITE_SITE_URL` | build-time | canonical URL for JSON-LD/sitemap (default `https://proteinestore.pro`) |
+| `ORDER_DB_PATH` | server | override the SQLite file (default `data/proteinstore.db`) |
 
-`VITE_*` values are baked in at build time. Never prefix the service-role key with `VITE_`.
-`.env` is git-ignored; `.env.example` documents the shape.
+`.env` is git-ignored; `.env.example` documents the shape. Never prefix a secret with `VITE_`.
 
-## Back office
+## Data & backups
 
-`/auth` → sign in with an admin account → `/admin`.
-
-- **Products:** price, sale price, stock, low-stock threshold, publication, flavours.
-- **Partners:** gyms, discount codes, links, display order.
-- **Orders:** the queue only shows orders created before the switch to WhatsApp ordering
-  (there are none in the live database today). WhatsApp orders live in the chat.
-- **Staff (Super Admin only):** requires the optional service-role key.
-
-Authorization is enforced **server-side** on every function by `user_roles` + RLS; the UI guard is
-only a convenience.
+- Local store: `data/proteinstore.db` (WAL mode). Git-ignored, created automatically.
+- Backup: `node scripts/backup-orders.mjs` (copies a consistent snapshot to `data/backups/`).
+- Restore: stop the service, replace `data/proteinstore.db`, start the service.
+- Catalogue/auth remain in the managed backend and are not duplicated locally.
 
 ## Deployment
 
-See [`docs/07-runbook.md`](docs/07-runbook.md) for the full procedure.
+See [`docs/07-runbook.md`](docs/07-runbook.md).
 
 ```bash
 ./deploy/deploy.sh   # install, typecheck, test, build, restart the isolated unit, smoke test
 ```
 
-- Unit: `deploy/proteinstore.service` → `/etc/systemd/system/proteinstore.service` (port 5077)
-- Vhost: `deploy/Caddyfile.snippet` → appended to `/etc/caddy/Caddyfile`, then `caddy reload`
-- Health/smoke: `node scripts/smoke.mjs https://proteinstore.46.225.2.52.sslip.io`
+- Unit: `deploy/proteinstore.service` → port **5077**, writable `data/` (`ReadWritePaths`)
+- Vhost: `deploy/Caddyfile.snippet` → `/etc/caddy/Caddyfile`, then `caddy reload`
+- Smoke: `node scripts/smoke.mjs https://proteinstore.46.225.2.52.sslip.io` (21 checks)
 
 ## Quality
 
 | Check | Result |
 |---|---|
 | `tsc --noEmit` | ✅ |
-| `npm test` | ✅ 15/15 |
-| `npm run build` | ✅ |
-| Production smoke | ✅ |
-| `npm run lint` | ❌ 964 **pre-existing** Prettier violations; files touched by this delivery are clean |
+| `npm test` | ✅ 40/40 |
+| `npm run build` + sitemap | ✅ 72 URLs |
+| Production smoke | ✅ 21/21 |
+| Order RPC + tracking + DB rows | ✅ exercised, QA order removed |
+| Unauthenticated admin API | ✅ rejected |
+| `npm run lint` | ❌ pre-existing Prettier debt; touched files clean |
 | WCAG 2.2 AA certification | ❌ not audited with axe |
-| Checkout | ✅ WhatsApp handoff (no DB writes) |
+| Browser E2E | ❌ not automated |
 
 ## Documentation
 
@@ -109,9 +125,9 @@ See [`docs/07-runbook.md`](docs/07-runbook.md) for the full procedure.
 
 ## Known limitations
 
-1. Orders are not stored in the database; there is no admin order queue or analytics for them.
-2. No browser E2E and no automated accessibility audit.
-3. `/track-order` is a WhatsApp handoff, not a live status lookup.
-4. No admin audit log, no MFA.
+1. WhatsApp messages are opened by the admin; there is no WhatsApp Business API auto-send.
+2. The order store is single-host SQLite (no replication); back it up before upgrades.
+3. No browser E2E and no automated accessibility audit.
+4. No admin MFA or audit log (message/event log exists per order).
 5. French only; no Arabic/RTL.
-6. `drizzle/` is reference DDL, not applied at runtime.
+6. `drizzle/` remains reference DDL for the managed backend.

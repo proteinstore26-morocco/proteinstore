@@ -21,6 +21,7 @@ import { Route as TrackOrderRouteImport } from './routes/track-order'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
+import { Route as AuthenticatedAdminStoreRouteImport } from './routes/_authenticated/admin.store'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -81,6 +82,11 @@ const ProductSlugRoute = ProductSlugRouteImport.update({
   path: '/product/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminStoreRoute = AuthenticatedAdminStoreRouteImport.update({
+  id: '/store',
+  path: '/store',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -92,8 +98,9 @@ export interface FileRoutesByFullPath {
   '/shop': typeof ShopRoute
   '/track-order': typeof TrackOrderRoute
   '/account': typeof AuthenticatedAccountRoute
-  '/admin': typeof AuthenticatedAdminRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/product/$slug': typeof ProductSlugRoute
+  '/admin/store': typeof AuthenticatedAdminStoreRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -105,8 +112,9 @@ export interface FileRoutesByTo {
   '/shop': typeof ShopRoute
   '/track-order': typeof TrackOrderRoute
   '/account': typeof AuthenticatedAccountRoute
-  '/admin': typeof AuthenticatedAdminRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/product/$slug': typeof ProductSlugRoute
+  '/admin/store': typeof AuthenticatedAdminStoreRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -120,8 +128,9 @@ export interface FileRoutesById {
   '/shop': typeof ShopRoute
   '/track-order': typeof TrackOrderRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
-  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/product/$slug': typeof ProductSlugRoute
+  '/_authenticated/admin/store': typeof AuthenticatedAdminStoreRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -137,6 +146,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/product/$slug'
+    | '/admin/store'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/product/$slug'
+    | '/admin/store'
   id:
     | '__root__'
     | '/'
@@ -164,6 +175,7 @@ export interface FileRouteTypes {
     | '/_authenticated/account'
     | '/_authenticated/admin'
     | '/product/$slug'
+    | '/_authenticated/admin/store'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -265,17 +277,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin/store': {
+      id: '/_authenticated/admin/store'
+      path: '/store'
+      fullPath: '/admin/store'
+      preLoaderRoute: typeof AuthenticatedAdminStoreRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
+interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminStoreRoute: typeof AuthenticatedAdminStoreRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminStoreRoute: AuthenticatedAdminStoreRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountRoute: typeof AuthenticatedAccountRoute
-  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountRoute: AuthenticatedAccountRoute,
-  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
 }
 
 const AuthenticatedRouteRouteWithChildren =

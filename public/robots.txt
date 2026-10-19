@@ -1,14 +1,8 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
-
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /checkout
+
+Sitemap: https://proteinestore.pro/sitemap.xml
+Sitemap: https://proteinstore.46.225.2.52.sslip.io/sitemap.xml

@@ -3,7 +3,8 @@ import { useState } from "react";
 import { Banknote, MessageCircle, ShieldCheck } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { mad, shippingFor } from "@/lib/pricing";
-import { buildOrderMessage, whatsappUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
+import { whatsappUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
+import { createOrder } from "@/lib/orders.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,8 +31,9 @@ export const Route = createFileRoute("/checkout")({
 });
 
 function Checkout() {
-  const { items, subtotal } = useCart();
-  const [redirecting, setRedirecting] = useState(false);
+  const { items, subtotal, clear } = useCart();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
   const shipping = shippingFor(subtotal);
 
   if (!items.length) {
@@ -45,40 +47,56 @@ function Checkout() {
     );
   }
 
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError("");
+    setBusy(true);
     const form = new FormData(event.currentTarget);
     const value = (key: string) => String(form.get(key) ?? "");
 
-    const message = buildOrderMessage({
-      name: value("name"),
-      phone: value("phone"),
-      email: value("email"),
-      city: value("city"),
-      address: value("address"),
-      notes: value("notes"),
-      items: items.map((item) => ({
-        title: item.title,
-        qty: item.qty,
-        unitPrice: item.unitPrice,
-        ...(item.flavor ? { flavor: item.flavor } : {}),
-      })),
-      subtotal,
-      shipping,
-      total: subtotal + shipping,
-    });
+    try {
+      const result = await createOrder({
+        data: {
+          customer_name: value("name"),
+          customer_email: value("email"),
+          customer_phone: value("phone"),
+          city: value("city"),
+          address: value("address"),
+          notes: value("notes"),
+          items: items.map((item) => ({
+            slug: item.slug,
+            qty: item.qty,
+            ...(item.flavor ? { flavor: item.flavor } : {}),
+          })),
+        },
+      });
 
-    setRedirecting(true);
-    // Same-tab redirect: opens the WhatsApp app on mobile, WhatsApp Web on desktop.
-    window.location.assign(whatsappUrl(message));
+      if (!result.ok) {
+        setError(result.error);
+        setBusy(false);
+        return;
+      }
+
+      clear();
+      // Same-tab redirect after the order is safely stored: WhatsApp app on mobile,
+      // WhatsApp Web on desktop, with the full order prefilled.
+      window.location.assign(result.whatsappUrl);
+    } catch (submitError) {
+      console.error("[checkout] order failed", submitError);
+      setError(
+        "La commande n'a pas pu être enregistrée. Réessayez ou commandez directement sur WhatsApp.",
+      );
+      setBusy(false);
+    }
   }
 
   return (
     <main className="container-ps section-ps">
       <h1 className="headline text-5xl">Commande</h1>
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        Renseignez vos coordonnées : vous serez redirigé vers WhatsApp avec le récapitulatif
-        complet. Notre équipe confirme la livraison et vous payez en espèces à la réception.
+        Renseignez vos coordonnées : la commande est enregistrée, puis WhatsApp s'ouvre avec le
+        récapitulatif complet. Notre équipe confirme la livraison et vous payez en espèces à la
+        réception.
       </p>
       <div className="mt-8 grid gap-10 md:grid-cols-[1fr_380px]">
         <form onSubmit={submit} className="space-y-4">
@@ -148,10 +166,27 @@ function Checkout() {
               </p>
             </div>
           </div>
-          <Button type="submit" size="lg" className="w-full" disabled={redirecting}>
+          {error && (
+            <div
+              role="alert"
+              aria-live="polite"
+              className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive"
+            >
+              <p>{error}</p>
+              <a
+                className="mt-2 inline-block font-medium underline"
+                href={whatsappUrl("Bonjour PROTEIN STORE® 👋 Je souhaite passer une commande.")}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Commander directement sur WhatsApp
+              </a>
+            </div>
+          )}
+          <Button type="submit" size="lg" className="w-full" disabled={busy}>
             <MessageCircle className="mr-2 size-5" />
-            {redirecting
-              ? "Ouverture de WhatsApp…"
+            {busy
+              ? "Enregistrement de la commande…"
               : `Commander sur WhatsApp · ${mad(subtotal + shipping)}`}
           </Button>
           <p className="text-center text-xs text-muted-foreground">

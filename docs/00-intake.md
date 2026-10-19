@@ -24,8 +24,8 @@ provided; the repository itself is the contract.
    1 active campaign, 5 reviews** (read-only count, 19/10/2026).
 9. **Known state:** the README reports a previously paused backend; at intake the backend answers
    (`/rest/v1` → 200) and serves real data. `orders` is empty to anon (RLS), as designed.
-10. **Ambiguity:** the repo commits `.env` with public keys, and the checkout requires a
-    server-only `SUPABASE_SERVICE_ROLE_KEY` that is absent from the repository.
+10. **Ambiguity:** the repo commits `.env` with public keys, and no order persistence existed. Resolved by
+    adding a local SQLite order store (no service-role key).
 
 ## Assumptions (explicit, per vibe-coding rule 1)
 
@@ -36,15 +36,15 @@ provided; the repository itself is the contract.
 | A3 | COD is the only payment method for v1. | Low — checkout is built around it. |
 | A4 | The managed Supabase-compatible backend stays in place for catalogue, accounts and admin. | High — self-hosting Postgres would be a rewrite. |
 | A5 | "Deploy" means a new isolated Node service on this host behind Caddy, not touching the existing productions. | High — would change the deployment target. |
-| A6 | Orders are placed through WhatsApp; no server-side order writer or service-role key is needed. | Low — orders would need a manual archive instead of a database queue. |
+| A6 | Orders are stored locally in SQLite and mirrored to WhatsApp; no service-role key is needed. | Low — the local DB is single-host and must be backed up. |
 | A7 | sslip.io hostname is acceptable until DNS for a real domain is pointed here. | Low — swap the Caddy vhost. |
 
 ## Blockers raised at intake
 
 1. **Repository access** — resolved: the owner made the repository public; import succeeded.
-2. **Service-role key (resolved by scope change)** — the owner chose WhatsApp ordering instead of
-   database order writes. Checkout now redirects to WhatsApp; no `orders` INSERT is attempted.
-   The key remains optional and is only needed for privileged staff administration.
+2. **Service-role key (resolved)** — orders now live in a local SQLite store (`node:sqlite`), created
+   inside the checkout transaction. The managed backend is only used for catalogue/auth; the key stays
+   optional for staff administration.
 3. **Shared production host** — the deployment must be a new isolated unit on port 5077; no shared
    service is restarted and no shared database is touched.
 
@@ -52,4 +52,4 @@ provided; the repository itself is the contract.
 
 | Phase | Status | Open risks | Next step |
 |---|---|---|---|
-| 0 — Intake | ✅ Complete | A6 (service role key); A5 (host authorization) | Discovery: requirements + backlog |
+| 0 — Intake | ✅ Complete | A5 (host authorization) | Discovery: requirements + backlog |

@@ -6,6 +6,7 @@ import { getProduct } from "@/lib/catalog.functions";
 import { catalogQuery, useCatalog, priceOf, type Product } from "@/lib/catalog";
 import { productImage } from "@/lib/images";
 import { mad } from "@/lib/pricing";
+import { productJsonLd, SITE_URL } from "@/lib/seo";
 import { useCart } from "@/lib/cart";
 import { Stars } from "@/components/site/ProductCard";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,24 @@ function ProductPage() {
   const img = productImage(p);
   return (
     <main className="container-ps section-ps">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            productJsonLd({
+              title: p.title,
+              description: p.description ?? "",
+              image: img.startsWith("http") ? img : `${SITE_URL}${img}`,
+              brand: p.brand,
+              slug: p.slug,
+              price: pr.price,
+              stock: p.stock_quantity,
+              rating: Number(p.rating),
+              reviewCount: p.review_count,
+            }),
+          ),
+        }}
+      />
       <Link to="/shop" className="text-sm text-muted-foreground hover:text-foreground">← Boutique</Link>
       <div className="mt-6 grid gap-10 md:grid-cols-2">
         <div className="aspect-square overflow-hidden rounded-2xl bg-card"><img src={img} alt={p.title} className="h-full w-full object-cover" /></div>

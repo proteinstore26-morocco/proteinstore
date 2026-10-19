@@ -35,3 +35,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local order store (SQLite) and generated sitemap
+/data/
+/public/sitemap.xml

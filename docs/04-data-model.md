@@ -1,7 +1,13 @@
 # Phase 2 — Data Model (Database Expert)
 
-Source: live managed Supabase-compatible Postgres (PostgREST OpenAPI + `src/integrations/supabase/types.ts`)
-and `drizzle/migrations/0000_store_schema_and_seed.sql` (reference DDL). **10 tables.**
+Two stores back the application:
+
+1. **Managed Supabase-compatible Postgres** — catalogue, auth, roles (10 tables, RLS).
+2. **Local SQLite** (`data/proteinstore.db`, `node:sqlite`) — orders, order items, events, invoices and the
+   WhatsApp log. This is the order system of record and needs no service-role key.
+
+Sources: PostgREST OpenAPI + `src/integrations/supabase/types.ts`, `drizzle/migrations/0000_store_schema_and_seed.sql`
+(reference DDL), and `src/lib/order-store.server.ts` (local schema).
 
 ## 1. ERD
 
@@ -184,17 +190,24 @@ CREATE INDEX IF NOT EXISTS campaigns_active_window_idx ON public.campaigns (is_a
 | `user_roles` | none | SELECT own | SELECT all; staff writes via service role |
 | `subscribers` | INSERT only | INSERT only | SELECT |
 
-**Consequence:** the app never creates orders. Checkout hands the cart to WhatsApp, so the
-`orders` table only holds historical/admin-created rows. There is no public INSERT policy and none
-should be added (see `AGENTS.md`).
+**Consequence:** the managed `orders` table is never written by the app. Checkout writes to the local
+SQLite store and then hands the order to WhatsApp; the managed table stays historical/unused. There is no
+public INSERT policy and none should be added (see `AGENTS.md`).
 
-## 5. Concurrency & integrity
+## 5. Concurrency & integrity (local SQLite)
 
-- **Overselling:** stock is informational only for WhatsApp orders. The shop confirms availability in
-  the chat before dispatch; no online reservation or decrement happens.
-- **Order record:** there is none for WhatsApp orders. The prefilled message is the order; the shop
-  must keep its own record (chat archive, spreadsheet or future WhatsApp Business API integration).
-- **Idempotency:** not applicable; the customer sends one WhatsApp message and the shop confirms it.
+- **Transactions:** `createOrder` runs `BEGIN IMMEDIATE` → order + items + `created` event → `COMMIT`;
+  any failure rolls back. Node's SQLite driver serialises writers in one process.
+- **Numbering:** `counters` is updated with `INSERT ... ON CONFLICT DO UPDATE ... RETURNING`, so order and
+  invoice numbers are gap-free per sequence (`PS-YYYY-NNNNN`, `FAC-YYYY-NNNNN`).
+- **Stock:** checked against the live catalogue before insert, but **not decremented** — WhatsApp orders are
+  confirmed by the shop, which owns stock in the chat. No oversell risk because no online reservation exists.
+- **Immutability:** item title, variant and unit price are snapshotted in `order_items`; later catalogue edits
+  never rewrite history.
+- **Events:** status changes, notes, invoice issues, payments and WhatsApp sends append to `order_events`
+  (append-only; no update/delete path in the app).
+- **Backups:** SQLite WAL is backed up with the built-in `backup()` API (`scripts/backup-orders.mjs`), which
+  is safe while the service runs.
 
 ## 6. Seed / reference data
 
@@ -205,9 +218,82 @@ shape; it is **not** applied to the live database automatically.
 
 ## 7. Backup & retention
 
-- The managed backend handles Postgres backups; **confirm the retention window** in its dashboard.
-  This host keeps no database copy.
-- Recommended: weekly logical export (`pg_dump --data-only`) stored off-host for 30 days.
-- Personal data (name, phone, email, address) is needed only to fulfil the order. Recommended
-  retention: 13 months for delivered orders, then anonymise name/phone/address while keeping the
-  financial line items. Not implemented — see security doc.
+- **Local orders:** `node scripts/backup-orders.mjs` writes a consistent snapshot to `data/backups/` and keeps
+  the last 14. Run it daily (cron) and before every deploy that changes the schema.
+- **Managed backend:** the provider manages Postgres backups; confirm the retention window in its dashboard.
+- **Retention:** financial records (orders/invoices) are kept 13 months minimum. Personal data is needed to
+  deliver the order; the admin can annotate/anonymise on request (no automated deletion yet).
+
+## 8. Local order store — ERD
+
+```mermaid
+erDiagram
+  orders ||--|{ order_items : contains
+  orders ||--o{ order_events : logs
+  orders ||--o| invoices : "invoiced by"
+  orders ||--o{ whatsapp_messages : "messages"
+
+  orders {
+    text id PK
+    text order_number UK
+    text customer_name
+    text customer_phone
+    text customer_phone_norm "indexed"
+    text customer_email
+    text city
+    text address
+    text notes
+    int subtotal
+    int shipping
+    int total
+    text status "pending|confirmed|shipped|delivered|cancelled"
+    text payment_status "unpaid|paid|refunded"
+    text created_at
+    text updated_at
+  }
+  order_items {
+    text id PK
+    text order_id FK
+    text product_slug
+    text product_title "snapshot"
+    text variant
+    int quantity
+    int unit_price "snapshot"
+    int line_total
+  }
+  order_events {
+    int id PK
+    text order_id FK
+    text type "created|status|note|invoice|payment|whatsapp"
+    text message
+    text actor
+    text created_at
+  }
+  invoices {
+    text id PK
+    text number UK
+    text order_id FK "unique"
+    text status "issued|paid|void"
+    text issued_at
+    text paid_at
+    text notes
+  }
+  whatsapp_messages {
+    int id PK
+    text phone
+    text order_id FK
+    text template
+    text body
+    text created_at
+    text sent_by
+  }
+  counters {
+    text name PK
+    int value
+  }
+```
+
+Indexes: `orders(created_at DESC)`, `orders(customer_phone_norm)`, `orders(status, created_at DESC)`,
+`order_items(order_id)`, `order_events(order_id, id)`, `whatsapp_messages(order_id, id)`.
+
+Accessed only by server modules (`order-store.server.ts`); the DB file is never exposed by Caddy.
