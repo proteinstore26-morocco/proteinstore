@@ -31,7 +31,7 @@ function AuthPage() {
       if (error) setMsg("Identifiant ou mot de passe incorrect.");
       else {
         const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", data.user.id);
-        nav({ to: roles?.some((r) => r.role !== "customer") ? "/admin" : "/account" });
+        if (roles?.some((r) => r.role !== "customer")) nav({ to: "/admin" }); else nav({ to: "/account" });
       }
     } else {
       const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin, data: { full_name: String(f.get("name")) } } });
