@@ -22,6 +22,7 @@ import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminStoreRouteImport } from './routes/_authenticated/admin.store'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 
@@ -89,6 +90,11 @@ const ProductSlugRoute = ProductSlugRouteImport.update({
   path: '/product/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedAdminStoreRoute = AuthenticatedAdminStoreRouteImport.update({
   id: '/store',
   path: '/store',
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/product/$slug': typeof ProductSlugRoute
   '/admin/store': typeof AuthenticatedAdminStoreRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,11 +133,11 @@ export interface FileRoutesByTo {
   '/shop': typeof ShopRoute
   '/track-order': typeof TrackOrderRoute
   '/account': typeof AuthenticatedAccountRoute
-  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/auth/reset': typeof AuthResetRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/store': typeof AuthenticatedAdminStoreRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -149,6 +156,7 @@ export interface FileRoutesById {
   '/product/$slug': typeof ProductSlugRoute
   '/_authenticated/admin/store': typeof AuthenticatedAdminStoreRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -167,6 +175,7 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/admin/store'
     | '/admin/users'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -178,11 +187,11 @@ export interface FileRouteTypes {
     | '/shop'
     | '/track-order'
     | '/account'
-    | '/admin'
     | '/auth/reset'
     | '/product/$slug'
     | '/admin/store'
     | '/admin/users'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -200,6 +209,7 @@ export interface FileRouteTypes {
     | '/product/$slug'
     | '/_authenticated/admin/store'
     | '/_authenticated/admin/users'
+    | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -308,6 +318,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/store': {
       id: '/_authenticated/admin/store'
       path: '/store'
@@ -328,11 +345,13 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminStoreRoute: typeof AuthenticatedAdminStoreRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminStoreRoute: AuthenticatedAdminStoreRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 
 const AuthenticatedAdminRouteWithChildren =
