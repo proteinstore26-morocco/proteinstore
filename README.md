@@ -27,6 +27,7 @@ no service-role key. The Supabase-compatible backend is only used for catalogue,
 `/auth` → sign in as `admin` / `super_admin` → `/admin`. Forgot the password? Use **« Mot de passe oublié ? »**
 (see [admin access](docs/09-admin-access.md)).
 
+- **Import (admin/root):** third-party products as drafts, French translation, photos, no price/stock (`/admin/import`).
 - **Root only — Users:** invitations, role changes, suspension, account audit (`/admin/users`).
 - **Overview:** revenue, orders, customers, average basket, pending queue, recent orders, top products.
 - **Orders:** filters/search, full detail, status flow, internal notes, event history, invoice generation.
@@ -62,7 +63,7 @@ npm run dev                      # Vite dev server (prints its URL)
 If your shell exports `NODE_ENV=production`, add `--include=dev` to the install command.
 
 ```bash
-npm test            # 48 unit tests (store, accounts, pricing, RBAC, WhatsApp, SEO, phones)
+npm test            # 57 unit tests (store, accounts, pricing, RBAC, WhatsApp, SEO, phones)
 npx tsc --noEmit    # strict type-check
 npm run build       # → .output/server/index.mjs + public/sitemap.xml (postbuild)
 node .output/server/index.mjs   # production server on $PORT
@@ -127,13 +128,16 @@ See [`docs/07-runbook.md`](docs/07-runbook.md).
 - [Test / staging instance](docs/08-staging.md)
 - [Admin access & password reset](docs/09-admin-access.md)
 - [Users, roles & root dashboard](docs/10-users-roles.md)
+- [Product import (draft-only)](docs/11-product-import.md)
 
 ## Known limitations
 
 1. WhatsApp messages are opened by the admin; there is no WhatsApp Business API auto-send.
 2. The order/account store is single-host SQLite (no replication); back it up before upgrades.
 3. User roles are local; the dashboard cannot create/delete Supabase identities or reset their passwords.
-4. No browser E2E and no automated accessibility audit.
-5. No admin MFA (account changes are audited locally).
-6. French only; no Arabic/RTL.
-7. `drizzle/` remains reference DDL for the managed backend.
+4. Imported descriptions use a local glossary unless `DEEPL_API_KEY` is configured; review before publishing.
+5. Imported images are hotlinked from the source site; check usage rights and replace if needed.
+6. No browser E2E and no automated accessibility audit.
+7. No admin MFA (account changes are audited locally).
+8. French only; no Arabic/RTL.
+9. `drizzle/` remains reference DDL for the managed backend.

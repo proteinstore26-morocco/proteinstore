@@ -133,6 +133,10 @@ export function parseHtmlProducts(html: string, baseUrl: string): SourceProduct[
     if (og) push(og);
   }
 
+  if (found.length === 0) {
+    for (const card of cardProducts(html, base)) push(card);
+  }
+
   return found.slice(0, 60);
 }
 
@@ -229,6 +233,10 @@ function openGraphProduct(
   };
   const title = meta("og:title");
   if (!title) return null;
+  const type = meta("og:type") ?? "";
+  const priceSignal = meta("product:price:amount");
+  const urlSignal = (meta("og:url") ?? base.href).match(/\/products?\//i);
+  if (!/product/i.test(type) && !priceSignal && !urlSignal) return null;
   const sourceUrl = meta("og:url") ?? base.href;
   const image = meta("og:image");
   const price = meta("product:price:amount");
@@ -245,6 +253,48 @@ function openGraphProduct(
     sourcePrice: price ? Number.parseFloat(price) : null,
     currency: meta("product:price:currency") ?? "EUR",
   };
+}
+
+/** Fallback for saved category pages: product links that contain a title and image. */
+function cardProducts(
+  html: string,
+  base: URL,
+): (Omit<SourceProduct, "handle"> & { handle?: string })[] {
+  const results: (Omit<SourceProduct, "handle"> & { handle?: string })[] = [];
+  const seen = new Set<string>();
+  const anchors = html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]{0,1200}?)<\/a>/gi);
+  for (const match of anchors) {
+    const href = decodeHtml(match[1] ?? "");
+    if (!/(\/products?\/|\/detail\/|\/artikel\/|\/p\/)/i.test(href)) continue;
+    const inner = match[2] ?? "";
+    const imageMatch = inner.match(/<img\b[^>]*(?:data-src|src)=["']([^"']+)["'][^>]*>/i);
+    if (!imageMatch?.[1]) continue;
+    const alt = inner.match(/<img\b[^>]*alt=["']([^"']+)["']/i)?.[1] ?? "";
+    const text = stripHtml(inner);
+    const title = decodeHtml(alt).trim() || text.trim();
+    if (title.length < 3) continue;
+    const sourceUrl = resolveUrl(href, base);
+    if (seen.has(sourceUrl)) continue;
+    seen.add(sourceUrl);
+    const imageUrl = resolveUrl(decodeHtml(imageMatch[1]), base);
+    if (!imageUrl.startsWith("https://")) continue;
+    const priceMatch = inner.match(/(\d+[.,]\d{2})\s*€/);
+    results.push({
+      handle: slugFromUrl(sourceUrl),
+      title,
+      descriptionHtml: "",
+      vendor: "",
+      productType: "",
+      tags: [],
+      imageUrls: [imageUrl],
+      flavors: [],
+      sourceUrl,
+      sourcePrice: priceMatch?.[1] ? Number.parseFloat(priceMatch[1].replace(",", ".")) : null,
+      currency: "EUR",
+    });
+    if (results.length >= 60) break;
+  }
+  return results;
 }
 
 function resolveUrl(value: string, base: URL): string {

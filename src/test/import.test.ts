@@ -98,6 +98,19 @@ describe("product import helpers", () => {
     expect(products[0]?.imageUrls[0]).toBe("https://cdn.example/p.jpg");
   });
 
+  it("extracts product cards from a saved category page", () => {
+    const html = `<html><body>
+      <a href="/detail/test-whey"><img data-src="/media/test-whey.jpg" alt="Test Whey 2kg"><span>29,90 €</span></a>
+      <a href="/detail/creatine"><img src="https://cdn.example/creatine.jpg" alt="Kreatin 300g"><span>19,90 €</span></a>
+      <a href="/about">À propos</a>
+    </body></html>`;
+    const products = parseHtmlProducts(html, "https://powernutritionstore.de/products-de/");
+    expect(products).toHaveLength(2);
+    expect(products[0]?.title).toBe("Test Whey 2kg");
+    expect(products[0]?.imageUrls[0]).toBe("https://powernutritionstore.de/media/test-whey.jpg");
+    expect(products[1]?.title).toBe("Kreatin 300g");
+  });
+
   it("falls back to Open Graph tags", () => {
     const html = `<html><head>
       <meta property="og:title" content="OG Whey" />
