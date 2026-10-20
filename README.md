@@ -27,7 +27,7 @@ no service-role key. The Supabase-compatible backend is only used for catalogue,
 `/auth` → sign in as `admin` / `super_admin` → `/admin`. Forgot the password? Use **« Mot de passe oublié ? »**
 (see [admin access](docs/09-admin-access.md)).
 
-- **Import (admin/root):** third-party products as drafts, French translation, photos, no price/stock (`/admin/import`).
+- **Import (admin/root):** third-party products as drafts, French translation, photos, no price/stock (`/admin/import`), with an editable **IMPORT_ALLOWED_HOSTS** domain list.
 - **Root only — Users:** invitations, role changes, suspension, account audit (`/admin/users`).
 - **Overview:** revenue, orders, customers, average basket, pending queue, recent orders, top products.
 - **Orders:** filters/search, full detail, status flow, internal notes, event history, invoice generation.
@@ -63,7 +63,7 @@ npm run dev                      # Vite dev server (prints its URL)
 If your shell exports `NODE_ENV=production`, add `--include=dev` to the install command.
 
 ```bash
-npm test            # 57 unit tests (store, accounts, pricing, RBAC, WhatsApp, SEO, phones)
+npm test            # 61 unit tests (store, accounts, pricing, RBAC, WhatsApp, SEO, phones)
 npx tsc --noEmit    # strict type-check
 npm run build       # → .output/server/index.mjs + public/sitemap.xml (postbuild)
 node .output/server/index.mjs   # production server on $PORT

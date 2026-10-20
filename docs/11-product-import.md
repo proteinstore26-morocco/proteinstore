@@ -3,6 +3,20 @@
 `/admin/import` lets an `admin` or `root` import third-party products as **drafts**. Drafts never reach the
 public storefront, sitemap, search or tracking until an admin edits and publishes them.
 
+## Gérer les domaines autorisés (IMPORT_ALLOWED_HOSTS)
+
+`/admin/import` contient une section **« Domaines autorisés (IMPORT_ALLOWED_HOSTS) »** :
+
+- les domaines de la variable serveur sont affichés avec le badge **env** et ne peuvent pas être retirés ici ;
+- un administrateur peut **ajouter** un domaine public (ex. `boutique-exemple.com`) ou **retirer** un domaine
+  ajouté via l'interface ;
+- les ajouts sont stockés dans la table `import_hosts` de `data/proteinstore.db`, prennent effet immédiatement
+  pour l'import URL et la résolution d'images HTML, et sont audités (`import.host.added` / `removed` dans le
+  journal root) ;
+- la validation refuse protocoles/chemins/ports, adresses IP, `localhost` et suffixes locaux/internes
+  (`.local`, `.internal`, `.test`, `.invalid`, `.onion`) ;
+- un domaine ajouté n'autorise que HTTPS et reste soumis à `robots.txt` et aux limites de taille/temps.
+
 ## Two import modes
 
 ### 1. From a URL

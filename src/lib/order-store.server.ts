@@ -305,6 +305,12 @@ export class OrderStore {
         created_at TEXT NOT NULL
       );
       CREATE INDEX IF NOT EXISTS account_events_created_idx ON account_events (id DESC);
+
+      CREATE TABLE IF NOT EXISTS import_hosts (
+        host TEXT PRIMARY KEY,
+        created_by TEXT,
+        created_at TEXT NOT NULL
+      );
     `);
   }
 
@@ -967,6 +973,41 @@ export class OrderStore {
       pendingInvitations: invitations.filter((invitation) => invitation.status === "pending")
         .length,
     };
+  }
+
+  listImportHosts(): { host: string; createdBy: string | null; createdAt: string }[] {
+    const rows = this.db.prepare("SELECT * FROM import_hosts ORDER BY host").all() as Row[];
+    return rows.map((row) => ({
+      host: asString(row["host"]),
+      createdBy: asNullableString(row["created_by"]),
+      createdAt: asString(row["created_at"]),
+    }));
+  }
+
+  addImportHost(
+    host: string,
+    actorId: string,
+  ): { host: string; createdBy: string | null; createdAt: string } {
+    const at = now();
+    this.db
+      .prepare(
+        "INSERT INTO import_hosts (host, created_by, created_at) VALUES (?,?,?) ON CONFLICT(host) DO NOTHING",
+      )
+      .run(host, actorId, at);
+    const row = this.db.prepare("SELECT * FROM import_hosts WHERE host = ?").get(host) as
+      Row | undefined;
+    if (!row) throw new Error("Domaine non enregistré.");
+    this.insertAccountEvent(actorId, null, "import.host.added", host, at);
+    return {
+      host: asString(row["host"]),
+      createdBy: asNullableString(row["created_by"]),
+      createdAt: asString(row["created_at"]),
+    };
+  }
+
+  removeImportHost(host: string, actorId: string | null = null): void {
+    this.db.prepare("DELETE FROM import_hosts WHERE host = ?").run(host);
+    this.insertAccountEvent(actorId, null, "import.host.removed", host);
   }
 
   static roleRank(role: AccountRole): number {

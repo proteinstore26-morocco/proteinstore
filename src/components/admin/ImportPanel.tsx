@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   AlertTriangle,
@@ -9,10 +9,19 @@ import {
   FileCode2,
   Globe,
   ImageOff,
+  Lock,
+  Plus,
   Square,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { importProducts, previewProductImport } from "@/lib/import.functions";
+import {
+  addImportHost,
+  getImportHosts,
+  importProducts,
+  previewProductImport,
+  removeImportHost,
+} from "@/lib/import.functions";
 import type { PreviewProduct } from "@/lib/import-products";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +52,9 @@ type ImportResult = {
 export function ImportPanel() {
   const previewFn = useServerFn(previewProductImport);
   const importFn = useServerFn(importProducts);
+  const hostsFn = useServerFn(getImportHosts);
+  const addHostFn = useServerFn(addImportHost);
+  const removeHostFn = useServerFn(removeImportHost);
   const queryClient = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -55,6 +67,14 @@ export function ImportPanel() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [newHost, setNewHost] = useState("");
+  const [hostBusy, setHostBusy] = useState(false);
+
+  const hosts = useQuery({
+    queryKey: ["admin", "import-hosts"],
+    queryFn: () => hostsFn({ data: undefined }),
+    retry: false,
+  });
 
   const importable = useMemo(
     () => (preview?.products ?? []).filter((product) => !product.exists),
@@ -138,6 +158,34 @@ export function ImportPanel() {
     toast.success("HTML chargé. Cliquez sur « Analyser la source ».");
   }
 
+  async function addHost(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setHostBusy(true);
+    try {
+      await addHostFn({ data: { host: newHost } });
+      setNewHost("");
+      await queryClient.invalidateQueries({ queryKey: ["admin", "import-hosts"] });
+      toast.success("Domaine autorisé.");
+    } catch (hostError) {
+      toast.error(hostError instanceof Error ? hostError.message : "Domaine invalide.");
+    } finally {
+      setHostBusy(false);
+    }
+  }
+
+  async function dropHost(host: string) {
+    setHostBusy(true);
+    try {
+      await removeHostFn({ data: { host } });
+      await queryClient.invalidateQueries({ queryKey: ["admin", "import-hosts"] });
+      toast.success("Domaine retiré.");
+    } catch (hostError) {
+      toast.error(hostError instanceof Error ? hostError.message : "Retrait impossible.");
+    } finally {
+      setHostBusy(false);
+    }
+  }
+
   function toggle(handle: string) {
     setSelected((current) => {
       const next = new Set(current);
@@ -165,6 +213,62 @@ export function ImportPanel() {
           puis publier depuis le catalogue. Vous devez disposer des droits sur les textes et images
           importés.
         </p>
+      </section>
+
+      <section className="rounded-xl border bg-card p-5">
+        <div className="flex items-center gap-2">
+          <Globe className="size-5 text-primary" />
+          <h2 className="font-semibold">Domaines autorisés (IMPORT_ALLOWED_HOSTS)</h2>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Les domaines ajoutés ici s'ajoutent à la variable serveur{" "}
+          <span className="font-mono">IMPORT_ALLOWED_HOSTS</span>. Ils autorisent l'import par URL
+          et servent de base aux images en mode HTML.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(hosts.data?.entries ?? []).map((entry) => (
+            <span
+              key={entry.host}
+              className="flex items-center gap-2 rounded-full border border-border px-3 py-1 text-xs"
+            >
+              {entry.source === "env" ? (
+                <Lock className="size-3 text-muted-foreground" />
+              ) : (
+                <Globe className="size-3 text-primary" />
+              )}
+              <span className="font-mono">{entry.host}</span>
+              {entry.source === "env" ? (
+                <span className="text-muted-foreground">env</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void dropHost(entry.host)}
+                  disabled={hostBusy}
+                  aria-label={`Retirer ${entry.host}`}
+                  className="text-destructive hover:opacity-80"
+                >
+                  <Trash2 className="size-3" />
+                </button>
+              )}
+            </span>
+          ))}
+          {hosts.isPending && <span className="text-xs text-muted-foreground">Chargement…</span>}
+          {hosts.isError && <span className="text-xs text-destructive">Liste indisponible.</span>}
+        </div>
+        <form onSubmit={addHost} className="mt-4 flex flex-wrap items-end gap-3">
+          <div className="min-w-56 flex-1">
+            <Label htmlFor="new-import-host">Ajouter un domaine</Label>
+            <Input
+              id="new-import-host"
+              value={newHost}
+              onChange={(event) => setNewHost(event.target.value)}
+              placeholder="boutique-exemple.com"
+            />
+          </div>
+          <Button type="submit" variant="outline" disabled={hostBusy || newHost.trim().length < 3}>
+            <Plus /> Autoriser
+          </Button>
+        </form>
       </section>
 
       <Tabs

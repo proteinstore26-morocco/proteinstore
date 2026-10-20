@@ -1,7 +1,6 @@
 // Server-side importer: polite fetch, robots.txt check, HTML fallback, translation.
 import {
   assertAllowedImportUrl,
-  defaultImportHosts,
   parseShopifyProducts,
   stripHtml,
   translateToFrench,
@@ -10,15 +9,6 @@ import {
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const USER_AGENT = "ProteinStoreCatalogImporter/1.0 (+https://proteinestore.pro)";
-
-function allowedHosts(): string[] {
-  const configured = process.env["IMPORT_ALLOWED_HOSTS"];
-  if (!configured?.trim()) return defaultImportHosts();
-  return configured
-    .split(",")
-    .map((host) => host.trim().toLowerCase())
-    .filter(Boolean);
-}
 
 export function translationMode(): "deepl" | "glossary" {
   return process.env["DEEPL_API_KEY"] ? "deepl" : "glossary";
@@ -55,10 +45,10 @@ async function fetchText(
   return { text, contentType: response.headers.get("content-type") ?? "" };
 }
 
-async function robotsAllows(origin: string, path: string): Promise<boolean> {
+async function robotsAllows(origin: string, path: string, hosts: string[]): Promise<boolean> {
   let text: string;
   try {
-    text = (await fetchText(`${origin}/robots.txt`, 8_000, allowedHosts())).text;
+    text = (await fetchText(`${origin}/robots.txt`, 8_000, hosts)).text;
   } catch {
     // Do not block on an unreadable robots file; the product fetch will fail safely.
     return true;
@@ -81,16 +71,19 @@ async function robotsAllows(origin: string, path: string): Promise<boolean> {
 /** Fetch a Shopify product feed from an allowlisted host. */
 export async function fetchSourceProducts(
   inputUrl: string,
+  hosts?: string[],
 ): Promise<{ products: SourceProduct[]; source: string }> {
-  const url = assertAllowedImportUrl(inputUrl, allowedHosts());
+  const { effectiveImportHosts } = await import("./import-hosts.server");
+  const allowed = hosts ?? (await effectiveImportHosts());
+  const url = assertAllowedImportUrl(inputUrl, allowed);
   const origin = url.origin;
-  if (!(await robotsAllows(origin, "/products.json"))) {
+  if (!(await robotsAllows(origin, "/products.json", allowed))) {
     throw new Error(
       "robots.txt interdit l'accès automatisé à ce catalogue. Utilisez l'import HTML.",
     );
   }
   const feedUrl = `${origin}/products.json?limit=250&page=1`;
-  const { text } = await fetchText(feedUrl, 20_000, allowedHosts());
+  const { text } = await fetchText(feedUrl, 20_000, allowed);
   let payload: unknown;
   try {
     payload = JSON.parse(text);

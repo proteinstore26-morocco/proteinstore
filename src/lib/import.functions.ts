@@ -5,7 +5,6 @@ import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   assertAllowedImportUrl,
-  defaultImportHosts,
   guessCategorySlug,
   slugify,
   type PreviewProduct,
@@ -21,22 +20,14 @@ const baseSchema = z.object({
   legalAccepted: z.literal(true),
 });
 
-function allowedHosts(): string[] {
-  const configured = process.env["IMPORT_ALLOWED_HOSTS"];
-  if (!configured?.trim()) return defaultImportHosts();
-  return configured
-    .split(",")
-    .map((host) => host.trim().toLowerCase())
-    .filter(Boolean);
-}
-
 async function guard(context: AdminContext) {
   const { requireStoreAdmin } = await import("./admin-guard.server");
   return requireStoreAdmin(context.supabase, context.userId, "admin", context.claims);
 }
 
 async function loadSource(input: { mode: "url" | "html"; url?: string; html?: string }) {
-  const { fetchSourceProducts, parseHtmlProducts, translateProducts } = await import("./import.server");
+  const { fetchSourceProducts, parseHtmlProducts, translateProducts } =
+    await import("./import.server");
 
   let sourceProducts: SourceProduct[];
   let sourceLabel: string;
@@ -47,9 +38,11 @@ async function loadSource(input: { mode: "url" | "html"; url?: string; html?: st
     sourceProducts = result.products;
     sourceLabel = result.source;
   } else {
-    if (!input.html || input.html.trim().length < 100) throw new Error("Collez le code source HTML de la page produit.");
+    if (!input.html || input.html.trim().length < 100)
+      throw new Error("Collez le code source HTML de la page produit.");
     if (!input.url) throw new Error("URL de la page (pour résoudre les images) manquante.");
-    const base = assertAllowedImportUrl(input.url, allowedHosts());
+    const { effectiveImportHosts } = await import("./import-hosts.server");
+    const base = assertAllowedImportUrl(input.url, await effectiveImportHosts());
     sourceProducts = parseHtmlProducts(input.html, base.href);
     sourceLabel = base.hostname;
     if (sourceProducts.length === 0) {
@@ -63,7 +56,10 @@ async function loadSource(input: { mode: "url" | "html"; url?: string; html?: st
   return { products: translated, source: sourceLabel };
 }
 
-function buildPreview(product: Awaited<ReturnType<typeof loadSource>>["products"][number], existing: Set<string>): PreviewProduct {
+function buildPreview(
+  product: Awaited<ReturnType<typeof loadSource>>["products"][number],
+  existing: Set<string>,
+): PreviewProduct {
   const slug = slugify(product.handle) || slugify(product.titleFr);
   const categorySlug = guessCategorySlug({
     productType: product.productType,
@@ -100,13 +96,48 @@ function writeError(error: { message?: string } | null): string {
   return message || "Insertion impossible.";
 }
 
+export const getImportHosts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await guard(context);
+    const { importHostEntries, envImportHosts } = await import("./import-hosts.server");
+    return { entries: await importHostEntries(), env: envImportHosts() };
+  });
+
+export const addImportHost = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ host: z.string().trim().min(3).max(253) }).parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    const admin = await guard(context);
+    const { addImportHost: addHost } = await import("./import-hosts.server");
+    return { entry: await addHost(data.host, admin.userId) };
+  });
+
+export const removeImportHost = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ host: z.string().trim().min(3).max(253) }).parse(data),
+  )
+  .handler(async ({ context, data }) => {
+    const admin = await guard(context);
+    const { removeImportHost: removeHost } = await import("./import-hosts.server");
+    await removeHost(data.host, admin.userId);
+    return { ok: true as const };
+  });
+
 export const previewProductImport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => baseSchema.parse(data))
   .handler(async ({ context, data }) => {
     await guard(context);
     const { translationMode } = await import("./import.server");
-    const { products, source } = await loadSource({ mode: data.mode, ...(data.url ? { url: data.url } : {}), ...(data.html ? { html: data.html } : {}) });
+    const { products, source } = await loadSource({
+      mode: data.mode,
+      ...(data.url ? { url: data.url } : {}),
+      ...(data.html ? { html: data.html } : {}),
+    });
     const slugs = await existingSlugs(context.supabase);
     const limited = products.slice(0, 50);
     return {
@@ -114,7 +145,8 @@ export const previewProductImport = createServerFn({ method: "POST" })
       translation: translationMode(),
       total: products.length,
       truncated: products.length > limited.length,
-      legalNotice: "Vous devez disposer des droits sur les textes et images importés. Les produits sont créés en brouillon, hors du site public.",
+      legalNotice:
+        "Vous devez disposer des droits sur les textes et images importés. Les produits sont créés en brouillon, hors du site public.",
       products: limited.map((product) => buildPreview(product, slugs)),
     };
   });
@@ -129,19 +161,27 @@ export const importProducts = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     await guard(context);
     const { translationMode } = await import("./import.server");
-    const { products, source } = await loadSource({ mode: data.mode, ...(data.url ? { url: data.url } : {}), ...(data.html ? { html: data.html } : {}) });
+    const { products, source } = await loadSource({
+      mode: data.mode,
+      ...(data.url ? { url: data.url } : {}),
+      ...(data.html ? { html: data.html } : {}),
+    });
     const wanted = new Set(data.handles);
     const selected = products.filter((product) => wanted.has(product.handle));
-    if (selected.length === 0) throw new Error("Aucun produit sélectionné n'a été retrouvé dans la source.");
+    if (selected.length === 0)
+      throw new Error("Aucun produit sélectionné n'a été retrouvé dans la source.");
 
     const [{ data: categoryRows, error: categoryError }, slugs] = await Promise.all([
       context.supabase.from("categories").select("id,slug"),
       existingSlugs(context.supabase),
     ]);
     if (categoryError) throw new Error("Impossible de lire les catégories.");
-    const categoryBySlug = new Map((categoryRows ?? []).map((row) => [String(row.slug), String(row.id)]));
+    const categoryBySlug = new Map(
+      (categoryRows ?? []).map((row) => [String(row.slug), String(row.id)]),
+    );
 
-    const imported: { handle: string; slug: string; title: string; categorySlug: string | null }[] = [];
+    const imported: { handle: string; slug: string; title: string; categorySlug: string | null }[] =
+      [];
     const skipped: { handle: string; reason: string }[] = [];
 
     for (const product of selected) {
@@ -192,7 +232,12 @@ export const importProducts = createServerFn({ method: "POST" })
         continue;
       }
       slugs.add(slug);
-      imported.push({ handle: product.handle, slug: String(inserted.slug), title: String(inserted.title), categorySlug });
+      imported.push({
+        handle: product.handle,
+        slug: String(inserted.slug),
+        title: String(inserted.title),
+        categorySlug,
+      });
     }
 
     return { source, translation: translationMode(), imported, skipped, total: selected.length };
