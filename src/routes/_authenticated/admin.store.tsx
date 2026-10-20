@@ -3,6 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
+  ChevronLeft,
+  ChevronRight,
   FileSpreadsheet,
   Package,
   ShoppingBag,
@@ -109,6 +111,7 @@ function Admin() {
   const [tab, setTab] = useState("orders");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<
     | { type: "order"; value: AdminOrder }
     | { type: "product"; value: Tables<"products"> }
@@ -273,6 +276,12 @@ function Admin() {
       (filter === "all" ||
         (filter === "low" ? p.stock_quantity <= p.low_stock_threshold : p.status === filter)),
   );
+  const PRODUCTS_PER_PAGE = 10;
+  const productPages = Math.max(1, Math.ceil(products.length / PRODUCTS_PER_PAGE));
+  const currentPage = Math.min(page, productPages);
+  const pageStart = (currentPage - 1) * PRODUCTS_PER_PAGE;
+  const pagedProducts = products.slice(pageStart, pageStart + PRODUCTS_PER_PAGE);
+
   const partners = data.partners.filter((p) =>
     [p.name, p.location ?? "", p.discount_code ?? ""].some((s) => s.toLowerCase().includes(needle)),
   );
@@ -353,6 +362,7 @@ function Admin() {
           setTab(v);
           setSearch("");
           setFilter("all");
+          setPage(1);
         }}
       >
         <div className="overflow-x-auto border-b pb-3">
@@ -383,11 +393,20 @@ function Admin() {
                     : "Rechercher…"
               }
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
           {(tab === "orders" || tab === "products") && (
-            <Select value={filter} onValueChange={setFilter}>
+            <Select
+              value={filter}
+              onValueChange={(value) => {
+                setFilter(value);
+                setPage(1);
+              }}
+            >
               <SelectTrigger className="w-44" aria-label="Filtrer">
                 <SelectValue />
               </SelectTrigger>
@@ -463,7 +482,7 @@ function Admin() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {products.map((p) => (
+                {pagedProducts.map((p) => (
                   <tr key={p.id} className="hover:bg-muted/40">
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-3">
@@ -510,6 +529,37 @@ function Admin() {
               </tbody>
             </table>
           </div>
+          {products.length > 0 && (
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs text-muted-foreground">
+                {pageStart + 1}–{Math.min(pageStart + PRODUCTS_PER_PAGE, products.length)} sur{" "}
+                {products.length} produit(s)
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage(Math.max(1, currentPage - 1))}
+                  aria-label="Page précédente"
+                >
+                  <ChevronLeft /> Précédent
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Page {currentPage} / {productPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= productPages}
+                  onClick={() => setPage(Math.min(productPages, currentPage + 1))}
+                  aria-label="Page suivante"
+                >
+                  Suivant <ChevronRight />
+                </Button>
+              </div>
+            </div>
+          )}
           {products.length === 0 && <Empty label="Aucun produit trouvé" />}
         </TabsContent>
         <TabsContent value="partners">
