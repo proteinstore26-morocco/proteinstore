@@ -91,17 +91,22 @@ Root manages accounts at `/admin/users` (invitations, role changes, suspension, 
 [10-users-roles.md](10-users-roles.md). The local account store is authoritative; Supabase is only the
 identity provider.
 
-## 9. Product import
+## 9. Catalogue CSV
+
+`/admin/catalogue` exports a filtered CSV and imports catalogue files with preview and per-line errors.
+XLSX is not supported: save as CSV UTF-8. See [13-catalogue-csv.md](13-catalogue-csv.md).
+
+## 10. Product import
 
 `/admin/import` (admin/root) imports third-party products as drafts. Cloudflare-protected sites must use the
 HTML mode (saved page); the server never bypasses anti-bot protection. See [11-product-import.md](11-product-import.md).
 
-## 10. Admin access
+## 11. Admin access
 
 No password is stored on this host. Use `/auth` → **Mot de passe oublié ?** → `/auth/reset`. The backend must
 allow the reset redirect URL and have SMTP configured. Full procedure and role SQL: [09-admin-access.md](09-admin-access.md).
 
-## 11. Backup & restore
+## 12. Backup & restore
 
 ```bash
 node scripts/backup-orders.mjs          # consistent snapshot (safe while running)
@@ -119,7 +124,7 @@ systemctl start proteinstore
 
 Backups contain personal data — encrypt them off-host (`age`, `gpg`) before copying.
 
-## 12. Verify
+## 13. Verify
 
 ```bash
 systemctl is-active proteinstore
@@ -127,7 +132,7 @@ node scripts/smoke.mjs https://proteinstore.46.225.2.52.sslip.io   # 21 checks
 journalctl -u proteinstore -n 50 --no-pager
 ```
 
-## 13. Rollback
+## 14. Rollback
 
 ```bash
 cp /etc/caddy/Caddyfile.bak.1792400679 /etc/caddy/Caddyfile && caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
@@ -135,7 +140,7 @@ systemctl disable --now proteinstore
 rm -rf .output && mv .output.prev .output && systemctl start proteinstore
 ```
 
-## 14. Routine operations
+## 15. Routine operations
 
 | Task             | Command                          |
 | ---------------- | -------------------------------- |
@@ -148,7 +153,7 @@ rm -rf .output && mv .output.prev .output && systemctl start proteinstore
 
 **Never** restart Caddy or shared `ted-studio`/`ao-*` units for this app.
 
-## 15. Troubleshooting
+## 16. Troubleshooting
 
 | Symptom                     | Cause                         | Fix                                                                |
 | --------------------------- | ----------------------------- | ------------------------------------------------------------------ |
@@ -160,7 +165,7 @@ rm -rf .output && mv .output.prev .output && systemctl start proteinstore
 | WhatsApp doesn't open       | pop-up/desktop session        | open `https://wa.me/212776566089` manually                         |
 | Sitemap 404                 | build ran without postbuild   | `npm run sitemap`, redeploy                                        |
 
-## 16. Known limitations
+## 17. Known limitations
 
 1. WhatsApp messages are opened by an admin; no Business API auto-send.
 2. SQLite is single-host (no replication); backups are manual/cron.
@@ -169,7 +174,7 @@ rm -rf .output && mv .output.prev .output && systemctl start proteinstore
 5. French only; no Arabic/RTL.
 6. `drizzle/` is reference-only.
 
-## 17. Roadmap
+## 18. Roadmap
 
 | Priority | Item                                                              |
 | -------- | ----------------------------------------------------------------- |
