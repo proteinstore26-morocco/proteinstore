@@ -103,7 +103,7 @@ function Admin() {
   const staff = useQuery({
     queryKey: ["admin", "staff"],
     queryFn: () => fetchStaff(),
-    enabled: query.data?.isSuperAdmin === true,
+    enabled: false,
     retry: false,
   });
   const [tab, setTab] = useState("orders");
@@ -315,6 +315,13 @@ function Admin() {
           <Button asChild variant="outline">
             <Link to="/admin">Tableau de bord</Link>
           </Button>
+          {data.isSuperAdmin && (
+            <Button asChild variant="outline">
+              <Link to="/admin/users">
+                <ShieldCheck /> Utilisateurs
+              </Link>
+            </Button>
+          )}
           <Button asChild variant="outline">
             <Link to="/shop">
               Voir la boutique
@@ -355,7 +362,6 @@ function Admin() {
               { value: "orders", label: "Commandes", icon: ShoppingBag },
               { value: "products", label: "Produits", icon: Package },
               { value: "partners", label: "Partenaires", icon: Users },
-              ...(data.isSuperAdmin ? [{ value: "staff", label: "Accès", icon: ShieldCheck }] : []),
             ].map((t) => (
               <TabsTrigger key={t.value} value={t.value} className="gap-2 px-4 py-3">
                 <t.icon className="size-4" />

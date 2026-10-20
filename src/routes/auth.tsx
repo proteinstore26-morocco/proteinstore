@@ -2,6 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { loginToEmail } from "@/lib/auth";
+import { syncMyAccount } from "@/lib/account.functions";
+import { roleAtLeast } from "@/lib/account-types";
+import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +32,7 @@ type Mode = "in" | "up" | "forgot";
 
 function AuthPage() {
   const nav = useNavigate();
+  const sync = useServerFn(syncMyAccount);
   const [mode, setMode] = useState<Mode>("in");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -78,6 +82,9 @@ function AuthPage() {
         },
       });
       setMsg(error ? error.message : "Vérifiez votre boîte mail pour confirmer votre compte.");
+    } catch (submitError) {
+      console.error("[auth] submit failed", submitError);
+      setMsg("Connexion effectuée, mais le profil est momentanément indisponible. Réessayez.");
     } finally {
       setBusy(false);
     }

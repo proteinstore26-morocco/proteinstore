@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { getAdminOrders, getAdminStats } from "@/lib/store.functions";
+import { useAuth } from "@/lib/auth";
 import { STATUS_LABELS, type OrderStatus } from "@/lib/order-types";
 import { mad } from "@/lib/pricing";
 import { Badge } from "@/components/ui/badge";
@@ -51,19 +52,43 @@ function AdminDashboard() {
   const statsFn = useServerFn(getAdminStats);
   const ordersFn = useServerFn(getAdminOrders);
   const [tab, setTab] = useState("overview");
+  const { isAdmin, isRoot, isManager, isSuspended, loading: authLoading } = useAuth();
 
-  const stats = useQuery({ queryKey: ["admin", "stats"], queryFn: () => statsFn(), retry: false });
+  const stats = useQuery({
+    queryKey: ["admin", "stats"],
+    queryFn: () => statsFn(),
+    retry: false,
+    enabled: isManager,
+  });
   const orders = useQuery({
     queryKey: ["admin", "orders", "overview"],
     queryFn: () => ordersFn({ data: {} }),
     retry: false,
+    enabled: isManager,
   });
 
-  if (stats.isPending) {
+  if (authLoading || (isManager && stats.isPending)) {
     return (
       <main className="container-ps py-16" aria-busy="true">
         <h1 className="text-3xl font-bold">Tableau de bord</h1>
         <p className="mt-4 text-muted-foreground">Chargement du magasin…</p>
+      </main>
+    );
+  }
+
+  if (!isManager) {
+    return (
+      <main className="container-ps py-16">
+        <ShieldCheck className="mb-4 size-10 text-primary" />
+        <h1 className="text-3xl font-bold">Administration</h1>
+        <p role="alert" className="my-6 text-muted-foreground">
+          {isSuspended
+            ? "Votre compte est suspendu. Contactez un super admin."
+            : "Accès réservé aux responsables boutique, administrateurs et super admins."}
+        </p>
+        <Button asChild>
+          <Link to="/auth">Changer de compte</Link>
+        </Button>
       </main>
     );
   }
@@ -97,11 +122,20 @@ function AdminDashboard() {
           <p className="mt-2 text-sm text-muted-foreground">PROTEIN STORE® · Kénitra</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline">
-            <Link to="/admin/store">
-              <Package /> Catalogue & partenaires
-            </Link>
-          </Button>
+          {isRoot && (
+            <Button asChild variant="outline">
+              <Link to="/admin/users">
+                <Users /> Utilisateurs
+              </Link>
+            </Button>
+          )}
+          {isAdmin && (
+            <Button asChild variant="outline">
+              <Link to="/admin/store">
+                <Package /> Catalogue & partenaires
+              </Link>
+            </Button>
+          )}
           <Button asChild variant="outline">
             <Link to="/shop">
               Voir la boutique <ArrowUpRight />
@@ -125,9 +159,11 @@ function AdminDashboard() {
             <TabsTrigger value="invoices" className="gap-2 px-4 py-3">
               <FileText className="size-4" /> Factures
             </TabsTrigger>
-            <TabsTrigger value="seo" className="gap-2 px-4 py-3">
-              <Search className="size-4" /> SEO
-            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="seo" className="gap-2 px-4 py-3">
+                <Search className="size-4" /> SEO
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
 
@@ -263,9 +299,11 @@ function AdminDashboard() {
         <TabsContent value="invoices" className="mt-6">
           <InvoicesPanel />
         </TabsContent>
-        <TabsContent value="seo" className="mt-6">
-          <SeoPanel />
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="seo" className="mt-6">
+            <SeoPanel />
+          </TabsContent>
+        )}
       </Tabs>
     </main>
   );

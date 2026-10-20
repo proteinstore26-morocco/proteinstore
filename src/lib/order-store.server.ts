@@ -23,6 +23,16 @@ import type {
   WhatsAppLogEntry,
 } from "./order-types";
 import { INVOICE_STATUSES, ORDER_STATUSES, PAYMENT_STATUSES } from "./order-types";
+import type {
+  Account,
+  AccountEvent,
+  AccountRole,
+  AccountStatus,
+  Invitation,
+  InvitationStatus,
+  UsersDashboard,
+} from "./account-types";
+import { ACCOUNT_ROLES, ROLE_RANK } from "./account-types";
 
 type SqlValue = string | number | null;
 type Row = Record<string, unknown>;
@@ -108,6 +118,45 @@ function mapMessage(row: Row): WhatsAppLogEntry {
     sentBy: asNullableString(row["sent_by"]),
   };
 }
+
+function mapAccount(row: Row): Account {
+  return {
+    userId: asString(row["user_id"]),
+    email: asString(row["email"]),
+    fullName: asNullableString(row["full_name"]),
+    role: asString(row["role"], "customer") as AccountRole,
+    status: asString(row["status"], "active") as AccountStatus,
+    createdAt: asString(row["created_at"]),
+    updatedAt: asString(row["updated_at"]),
+    lastSeenAt: asString(row["last_seen_at"]),
+  };
+}
+
+function mapInvitation(row: Row): Invitation {
+  return {
+    id: asString(row["id"]),
+    email: asString(row["email"]),
+    fullName: asNullableString(row["full_name"]),
+    role: asString(row["role"], "customer") as AccountRole,
+    status: asString(row["status"], "pending") as InvitationStatus,
+    invitedBy: asNullableString(row["invited_by"]),
+    createdAt: asString(row["created_at"]),
+    acceptedAt: asNullableString(row["accepted_at"]),
+  };
+}
+
+function mapAccountEvent(row: Row): AccountEvent {
+  return {
+    id: asNumber(row["id"]),
+    actorId: asNullableString(row["actor_id"]),
+    targetId: asNullableString(row["target_id"]),
+    action: asString(row["action"]),
+    detail: asNullableString(row["detail"]),
+    createdAt: asString(row["created_at"]),
+  };
+}
+
+const normEmail = (email: string) => email.trim().toLowerCase();
 
 export type CreateOrderInput = {
   customerName: string;
@@ -219,6 +268,43 @@ export class OrderStore {
         name TEXT PRIMARY KEY,
         value INTEGER NOT NULL
       );
+
+      CREATE TABLE IF NOT EXISTS accounts (
+        user_id TEXT PRIMARY KEY,
+        email TEXT NOT NULL,
+        email_norm TEXT NOT NULL UNIQUE,
+        full_name TEXT,
+        role TEXT NOT NULL DEFAULT 'customer',
+        status TEXT NOT NULL DEFAULT 'active',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        last_seen_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS accounts_role_idx ON accounts (role, status);
+
+      CREATE TABLE IF NOT EXISTS invitations (
+        id TEXT PRIMARY KEY,
+        email TEXT NOT NULL,
+        email_norm TEXT NOT NULL,
+        full_name TEXT,
+        role TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        invited_by TEXT,
+        created_at TEXT NOT NULL,
+        accepted_at TEXT
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS invitations_pending_idx
+        ON invitations (email_norm) WHERE status = 'pending';
+
+      CREATE TABLE IF NOT EXISTS account_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        actor_id TEXT,
+        target_id TEXT,
+        action TEXT NOT NULL,
+        detail TEXT,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS account_events_created_idx ON account_events (id DESC);
     `);
   }
 
@@ -637,6 +723,256 @@ export class OrderStore {
     };
   }
 
+  // ---------------------------------------------------------------------------
+  // Local accounts, roles and invitations
+  // ---------------------------------------------------------------------------
+
+  getAccount(userId: string): Account | null {
+    const row = this.db.prepare("SELECT * FROM accounts WHERE user_id = ?").get(userId) as
+      Row | undefined;
+    return row ? mapAccount(row) : null;
+  }
+
+  getAccountByEmail(email: string): Account | null {
+    const row = this.db
+      .prepare("SELECT * FROM accounts WHERE email_norm = ?")
+      .get(normEmail(email)) as Row | undefined;
+    return row ? mapAccount(row) : null;
+  }
+
+  listAccounts(query = ""): Account[] {
+    const like = `%${query.trim().toLowerCase()}%`;
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM accounts
+         WHERE (? = '%%' OR lower(email) LIKE ? OR lower(coalesce(full_name, '')) LIKE ?)
+         ORDER BY CASE role WHEN 'root' THEN 0 WHEN 'admin' THEN 1 WHEN 'manager' THEN 2 ELSE 3 END,
+                  created_at DESC
+         LIMIT 500`,
+      )
+      .all(like, like, like) as Row[];
+    return rows.map(mapAccount);
+  }
+
+  touchAccount(userId: string): void {
+    const at = now();
+    // Throttle writes: only refresh when the last visit is older than a minute.
+    this.db
+      .prepare("UPDATE accounts SET last_seen_at = ? WHERE user_id = ? AND last_seen_at < ?")
+      .run(at, userId, new Date(Date.now() - 60_000).toISOString());
+  }
+
+  ensureAccount(input: {
+    userId: string;
+    email: string;
+    fullName?: string | null;
+    seedRole: AccountRole;
+  }): Account {
+    const existing = this.getAccount(input.userId);
+    if (existing) {
+      if (input.fullName && input.fullName !== existing.fullName) {
+        this.db
+          .prepare("UPDATE accounts SET full_name = ?, updated_at = ? WHERE user_id = ?")
+          .run(input.fullName, now(), input.userId);
+      }
+      this.touchAccount(input.userId);
+      return this.getAccount(input.userId) ?? existing;
+    }
+
+    const email = input.email.trim() || `user-${input.userId}@local.invalid`;
+    const emailNorm = normEmail(email);
+    const at = now();
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      // Two tabs can sync at once on first login; the second transaction sees the row.
+      const concurrent = this.db
+        .prepare("SELECT * FROM accounts WHERE user_id = ?")
+        .get(input.userId) as Row | undefined;
+      if (concurrent) {
+        this.db.exec("COMMIT");
+        return mapAccount(concurrent);
+      }
+      const inviteRow = this.db
+        .prepare("SELECT * FROM invitations WHERE email_norm = ? AND status = 'pending'")
+        .get(emailNorm) as Row | undefined;
+      const invitation = inviteRow ? mapInvitation(inviteRow) : null;
+      const role = invitation?.role ?? input.seedRole;
+      this.db
+        .prepare(
+          `INSERT INTO accounts (user_id, email, email_norm, full_name, role, status, created_at, updated_at, last_seen_at)
+           VALUES (?,?,?,?,?,?,?,?,?)`,
+        )
+        .run(input.userId, email, emailNorm, input.fullName ?? null, role, "active", at, at, at);
+
+      if (invitation) {
+        this.db
+          .prepare("UPDATE invitations SET status = 'accepted', accepted_at = ? WHERE id = ?")
+          .run(at, invitation.id);
+        this.insertAccountEvent(
+          invitation.invitedBy,
+          input.userId,
+          "invitation.accepted",
+          `Invitation ${invitation.email} acceptée (${role})`,
+          at,
+        );
+      } else {
+        this.insertAccountEvent(
+          null,
+          input.userId,
+          "account.created",
+          `Compte local créé (${role})`,
+          at,
+        );
+      }
+      this.db.exec("COMMIT");
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      const raced = this.getAccount(input.userId);
+      if (raced) return raced;
+      throw error;
+    }
+    const created = this.getAccount(input.userId);
+    if (!created) throw new Error("Compte non enregistré.");
+    return created;
+  }
+
+  private insertAccountEvent(
+    actorId: string | null,
+    targetId: string | null,
+    action: string,
+    detail: string | null,
+    at = now(),
+  ): void {
+    this.db
+      .prepare(
+        "INSERT INTO account_events (actor_id, target_id, action, detail, created_at) VALUES (?,?,?,?,?)",
+      )
+      .run(actorId, targetId, action, detail, at);
+  }
+
+  setAccountRole(targetId: string, role: AccountRole, actorId: string): Account {
+    if (!(ACCOUNT_ROLES as readonly string[]).includes(role)) throw new Error("Rôle invalide.");
+    const account = this.getAccount(targetId);
+    if (!account) throw new Error("Compte introuvable.");
+    const at = now();
+    this.db
+      .prepare("UPDATE accounts SET role = ?, updated_at = ? WHERE user_id = ?")
+      .run(role, at, targetId);
+    this.insertAccountEvent(actorId, targetId, "account.role", `${account.role} → ${role}`, at);
+    return this.getAccount(targetId) ?? account;
+  }
+
+  setAccountStatus(targetId: string, status: AccountStatus, actorId: string): Account {
+    const account = this.getAccount(targetId);
+    if (!account) throw new Error("Compte introuvable.");
+    const at = now();
+    this.db
+      .prepare("UPDATE accounts SET status = ?, updated_at = ? WHERE user_id = ?")
+      .run(status, at, targetId);
+    this.insertAccountEvent(
+      actorId,
+      targetId,
+      "account.status",
+      `${account.status} → ${status}`,
+      at,
+    );
+    return this.getAccount(targetId) ?? account;
+  }
+
+  activeRootCount(): number {
+    const row = this.db
+      .prepare("SELECT COUNT(*) AS count FROM accounts WHERE role = 'root' AND status = 'active'")
+      .get() as Row | undefined;
+    return asNumber(row?.["count"]);
+  }
+
+  listInvitations(): Invitation[] {
+    const rows = this.db
+      .prepare("SELECT * FROM invitations ORDER BY created_at DESC LIMIT 500")
+      .all() as Row[];
+    return rows.map(mapInvitation);
+  }
+
+  createInvitation(input: {
+    email: string;
+    fullName?: string | null;
+    role: AccountRole;
+    invitedBy: string;
+  }): Invitation {
+    const email = input.email.trim();
+    const emailNorm = normEmail(email);
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailNorm)) throw new Error("Adresse e-mail invalide.");
+    if (this.getAccountByEmail(email))
+      throw new Error("Un compte existe déjà pour cet e-mail : modifiez son rôle.");
+    const pending = this.db
+      .prepare("SELECT id FROM invitations WHERE email_norm = ? AND status = 'pending'")
+      .get(emailNorm) as Row | undefined;
+    if (pending) throw new Error("Une invitation est déjà en attente pour cet e-mail.");
+    const id = randomUUID();
+    const at = now();
+    this.db
+      .prepare(
+        "INSERT INTO invitations (id, email, email_norm, full_name, role, status, invited_by, created_at) VALUES (?,?,?,?,?,?,?,?)",
+      )
+      .run(
+        id,
+        email,
+        emailNorm,
+        input.fullName ?? null,
+        input.role,
+        "pending",
+        input.invitedBy,
+        at,
+      );
+    this.insertAccountEvent(
+      input.invitedBy,
+      null,
+      "invitation.created",
+      `${email} → ${input.role}`,
+      at,
+    );
+    const row = this.db.prepare("SELECT * FROM invitations WHERE id = ?").get(id) as
+      Row | undefined;
+    if (!row) throw new Error("Invitation non enregistrée.");
+    return mapInvitation(row);
+  }
+
+  revokeInvitation(id: string, actorId: string): void {
+    const row = this.db.prepare("SELECT * FROM invitations WHERE id = ?").get(id) as
+      Row | undefined;
+    if (!row) throw new Error("Invitation introuvable.");
+    const invitation = mapInvitation(row);
+    if (invitation.status !== "pending") throw new Error("Cette invitation n'est plus en attente.");
+    this.db.prepare("UPDATE invitations SET status = 'revoked' WHERE id = ?").run(id);
+    this.insertAccountEvent(actorId, null, "invitation.revoked", invitation.email);
+  }
+
+  listAccountEvents(limit = 50): AccountEvent[] {
+    const rows = this.db
+      .prepare("SELECT * FROM account_events ORDER BY id DESC LIMIT ?")
+      .all(Math.min(Math.max(limit, 1), 200)) as Row[];
+    return rows.map(mapAccountEvent);
+  }
+
+  usersDashboard(): UsersDashboard {
+    const accounts = this.listAccounts();
+    const invitations = this.listInvitations();
+    const counts: Record<AccountRole, number> = { customer: 0, manager: 0, admin: 0, root: 0 };
+    for (const account of accounts) counts[account.role] += 1;
+    return {
+      accounts,
+      invitations,
+      events: this.listAccountEvents(50),
+      counts,
+      pendingInvitations: invitations.filter((invitation) => invitation.status === "pending")
+        .length,
+    };
+  }
+
+  static roleRank(role: AccountRole): number {
+    return ROLE_RANK[role];
+  }
+
   /** Every status/payment value is validated against the enums, so admin input cannot inject SQL. */
   static isStatus(value: string): value is OrderStatus {
     return (ORDER_STATUSES as readonly string[]).includes(value);
@@ -652,4 +988,9 @@ let singleton: OrderStore | undefined;
 export function orderStore(): OrderStore {
   if (!singleton) singleton = new OrderStore();
   return singleton;
+}
+
+/** Test hook: swap the singleton for an in-memory store. */
+export function setOrderStoreForTests(store: OrderStore | undefined): void {
+  singleton = store;
 }

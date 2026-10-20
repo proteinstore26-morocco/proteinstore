@@ -27,6 +27,7 @@ no service-role key. The Supabase-compatible backend is only used for catalogue,
 `/auth` → sign in as `admin` / `super_admin` → `/admin`. Forgot the password? Use **« Mot de passe oublié ? »**
 (see [admin access](docs/09-admin-access.md)).
 
+- **Root only — Users:** invitations, role changes, suspension, account audit (`/admin/users`).
 - **Overview:** revenue, orders, customers, average basket, pending queue, recent orders, top products.
 - **Orders:** filters/search, full detail, status flow, internal notes, event history, invoice generation.
 - **Customers:** aggregated by phone (orders, total spent, last order), order history, free WhatsApp message.
@@ -61,7 +62,7 @@ npm run dev                      # Vite dev server (prints its URL)
 If your shell exports `NODE_ENV=production`, add `--include=dev` to the install command.
 
 ```bash
-npm test            # 40 unit tests (store, pricing, RBAC, WhatsApp, SEO, phones)
+npm test            # 48 unit tests (store, accounts, pricing, RBAC, WhatsApp, SEO, phones)
 npx tsc --noEmit    # strict type-check
 npm run build       # → .output/server/index.mjs + public/sitemap.xml (postbuild)
 node .output/server/index.mjs   # production server on $PORT
@@ -69,14 +70,14 @@ node .output/server/index.mjs   # production server on $PORT
 
 ## Environment variables
 
-| Variable | Where | Purpose |
-|---|---|---|
-| `SUPABASE_URL` | server | PostgREST/Auth base URL |
-| `SUPABASE_PUBLISHABLE_KEY` | server | public key for catalogue reads |
-| `SUPABASE_SERVICE_ROLE_KEY` | server only, **optional** | staff administration only; not used by orders |
-| `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` | build-time | inlined in the browser bundle |
-| `VITE_SITE_URL` | build-time | canonical URL for JSON-LD/sitemap (default `https://proteinestore.pro`) |
-| `ORDER_DB_PATH` | server | override the SQLite file (default `data/proteinstore.db`) |
+| Variable                                              | Where                     | Purpose                                                                 |
+| ----------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------- |
+| `SUPABASE_URL`                                        | server                    | PostgREST/Auth base URL                                                 |
+| `SUPABASE_PUBLISHABLE_KEY`                            | server                    | public key for catalogue reads                                          |
+| `SUPABASE_SERVICE_ROLE_KEY`                           | server only, **optional** | staff administration only; not used by orders                           |
+| `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` | build-time                | inlined in the browser bundle                                           |
+| `VITE_SITE_URL`                                       | build-time                | canonical URL for JSON-LD/sitemap (default `https://proteinestore.pro`) |
+| `ORDER_DB_PATH`                                       | server                    | override the SQLite file (default `data/proteinstore.db`)               |
 
 `.env` is git-ignored; `.env.example` documents the shape. Never prefix a secret with `VITE_`.
 
@@ -101,17 +102,17 @@ See [`docs/07-runbook.md`](docs/07-runbook.md).
 
 ## Quality
 
-| Check | Result |
-|---|---|
-| `tsc --noEmit` | ✅ |
-| `npm test` | ✅ 40/40 |
-| `npm run build` + sitemap | ✅ 72 URLs |
-| Production smoke | ✅ 21/21 |
-| Order RPC + tracking + DB rows | ✅ exercised, QA order removed |
-| Unauthenticated admin API | ✅ rejected |
-| `npm run lint` | ❌ pre-existing Prettier debt; touched files clean |
-| WCAG 2.2 AA certification | ❌ not audited with axe |
-| Browser E2E | ❌ not automated |
+| Check                          | Result                                             |
+| ------------------------------ | -------------------------------------------------- |
+| `tsc --noEmit`                 | ✅                                                 |
+| `npm test`                     | ✅ 48/48                                           |
+| `npm run build` + sitemap      | ✅ 72 URLs                                         |
+| Production smoke               | ✅ 21/21                                           |
+| Order RPC + tracking + DB rows | ✅ exercised, QA order removed                     |
+| Unauthenticated admin API      | ✅ rejected                                        |
+| `npm run lint`                 | ❌ pre-existing Prettier debt; touched files clean |
+| WCAG 2.2 AA certification      | ❌ not audited with axe                            |
+| Browser E2E                    | ❌ not automated                                   |
 
 ## Documentation
 
@@ -125,12 +126,14 @@ See [`docs/07-runbook.md`](docs/07-runbook.md).
 - [Runbook, rollback, roadmap](docs/07-runbook.md)
 - [Test / staging instance](docs/08-staging.md)
 - [Admin access & password reset](docs/09-admin-access.md)
+- [Users, roles & root dashboard](docs/10-users-roles.md)
 
 ## Known limitations
 
 1. WhatsApp messages are opened by the admin; there is no WhatsApp Business API auto-send.
-2. The order store is single-host SQLite (no replication); back it up before upgrades.
-3. No browser E2E and no automated accessibility audit.
-4. No admin MFA or audit log (message/event log exists per order).
-5. French only; no Arabic/RTL.
-6. `drizzle/` remains reference DDL for the managed backend.
+2. The order/account store is single-host SQLite (no replication); back it up before upgrades.
+3. User roles are local; the dashboard cannot create/delete Supabase identities or reset their passwords.
+4. No browser E2E and no automated accessibility audit.
+5. No admin MFA (account changes are audited locally).
+6. French only; no Arabic/RTL.
+7. `drizzle/` remains reference DDL for the managed backend.

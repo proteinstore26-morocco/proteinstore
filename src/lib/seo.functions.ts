@@ -5,11 +5,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { productSeoScore, SITE_URL } from "./seo";
 import type { ProductSeoIssue, SeoAudit } from "./order-types";
 
-type AdminContext = { supabase: SupabaseClient<Database>; userId: string };
+type AdminContext = { supabase: SupabaseClient<Database>; userId: string; claims?: unknown };
 
 async function guard(context: AdminContext) {
   const { requireStoreAdmin } = await import("./admin-guard.server");
-  return requireStoreAdmin(context.supabase, context.userId);
+  return requireStoreAdmin(context.supabase, context.userId, "admin", context.claims);
 }
 
 export const getSeoAudit = createServerFn({ method: "GET" })

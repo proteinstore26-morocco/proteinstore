@@ -6,11 +6,11 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { buildInvoiceMessage, buildPaymentMessage, buildStatusMessage, waUrlTo } from "./whatsapp";
 import { normalizeMoroccanPhone } from "./phone";
 
-type AdminContext = { supabase: SupabaseClient<Database>; userId: string };
+type AdminContext = { supabase: SupabaseClient<Database>; userId: string; claims?: unknown };
 
 async function guard(context: AdminContext) {
   const { requireStoreAdmin } = await import("./admin-guard.server");
-  return requireStoreAdmin(context.supabase, context.userId);
+  return requireStoreAdmin(context.supabase, context.userId, "manager", context.claims);
 }
 
 const orderStatus = z.enum(["pending", "confirmed", "shipped", "delivered", "cancelled"]);

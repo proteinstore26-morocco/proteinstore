@@ -61,7 +61,7 @@ const nav = [
 
 export function Header() {
   const { count, setOpen } = useCart();
-  const { user, isAdmin } = useAuth();
+  const { user, isManager } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [menu, setMenu] = useState(false);
   useEffect(() => {
@@ -94,7 +94,7 @@ export function Header() {
           <Link to="/shop" aria-label="Rechercher" className="rounded-full p-2 hover:bg-secondary">
             <Search className="size-5" />
           </Link>
-          {isAdmin && (
+          {isManager && (
             <Button asChild variant="ghost" size="sm">
               <Link to="/admin">Admin</Link>
             </Button>

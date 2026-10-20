@@ -4,18 +4,18 @@ A separate test instance runs on port 5078 — see [08-staging.md](08-staging.md
 
 ## 1. What is deployed
 
-| Item | Value |
-|---|---|
-| URL | https://proteinstore.46.225.2.52.sslip.io |
-| Target domain | `proteinestore.pro` — DNS A record → `46.225.2.52` still required |
-| Service | `proteinstore.service` (systemd, enabled) |
-| Bind | `127.0.0.1:5077` |
-| Data | `data/proteinstore.db` (SQLite WAL), writable via `ReadWritePaths` |
-| Backups | `data/backups/` — last 14 snapshots |
-| Reverse proxy | Caddy 2.11, TLS, security headers |
-| Code | `/root/Said/proteinstore` |
-| Logs | `journalctl -u proteinstore -f` |
-| Managed backend | Catalogue/auth/roles only; orders are local |
+| Item            | Value                                                              |
+| --------------- | ------------------------------------------------------------------ |
+| URL             | https://proteinstore.46.225.2.52.sslip.io                          |
+| Target domain   | `proteinestore.pro` — DNS A record → `46.225.2.52` still required  |
+| Service         | `proteinstore.service` (systemd, enabled)                          |
+| Bind            | `127.0.0.1:5077`                                                   |
+| Data            | `data/proteinstore.db` (SQLite WAL), writable via `ReadWritePaths` |
+| Backups         | `data/backups/` — last 14 snapshots                                |
+| Reverse proxy   | Caddy 2.11, TLS, security headers                                  |
+| Code            | `/root/Said/proteinstore`                                          |
+| Logs            | `journalctl -u proteinstore -f`                                    |
+| Managed backend | Catalogue/auth/roles only; orders are local                        |
 
 ## 2. Ordering model
 
@@ -85,12 +85,18 @@ caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 5. Set `VITE_SITE_URL=https://proteinestore.pro` in `.env`, rebuild (sitemap/JSON-LD), restart.
 6. Optionally redirect the sslip.io host to the domain.
 
-## 8. Admin access
+## 8. Users & roles
+
+Root manages accounts at `/admin/users` (invitations, role changes, suspension, audit). See
+[10-users-roles.md](10-users-roles.md). The local account store is authoritative; Supabase is only the
+identity provider.
+
+## 9. Admin access
 
 No password is stored on this host. Use `/auth` → **Mot de passe oublié ?** → `/auth/reset`. The backend must
 allow the reset redirect URL and have SMTP configured. Full procedure and role SQL: [09-admin-access.md](09-admin-access.md).
 
-## 9. Backup & restore
+## 10. Backup & restore
 
 ```bash
 node scripts/backup-orders.mjs          # consistent snapshot (safe while running)
@@ -108,7 +114,7 @@ systemctl start proteinstore
 
 Backups contain personal data — encrypt them off-host (`age`, `gpg`) before copying.
 
-## 10. Verify
+## 11. Verify
 
 ```bash
 systemctl is-active proteinstore
@@ -116,7 +122,7 @@ node scripts/smoke.mjs https://proteinstore.46.225.2.52.sslip.io   # 21 checks
 journalctl -u proteinstore -n 50 --no-pager
 ```
 
-## 11. Rollback
+## 12. Rollback
 
 ```bash
 cp /etc/caddy/Caddyfile.bak.1792400679 /etc/caddy/Caddyfile && caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
@@ -124,32 +130,32 @@ systemctl disable --now proteinstore
 rm -rf .output && mv .output.prev .output && systemctl start proteinstore
 ```
 
-## 12. Routine operations
+## 13. Routine operations
 
-| Task | Command |
-|---|---|
-| Tail logs | `journalctl -u proteinstore -f` |
+| Task             | Command                          |
+| ---------------- | -------------------------------- |
+| Tail logs        | `journalctl -u proteinstore -f`  |
 | Restart app only | `systemctl restart proteinstore` |
-| Check port | `ss -ltnp \| grep 5077` |
-| Backup | `node scripts/backup-orders.mjs` |
-| DB size | `du -h data/proteinstore.db*` |
-| Sitemap | `npm run sitemap` |
+| Check port       | `ss -ltnp \| grep 5077`          |
+| Backup           | `node scripts/backup-orders.mjs` |
+| DB size          | `du -h data/proteinstore.db*`    |
+| Sitemap          | `npm run sitemap`                |
 
 **Never** restart Caddy or shared `ted-studio`/`ao-*` units for this app.
 
-## 13. Troubleshooting
+## 14. Troubleshooting
 
-| Symptom | Cause | Fix |
-|---|---|---|
-| 502 from Caddy | Node down / port mismatch | `systemctl status proteinstore` |
-| `SQLITE_CANTOPEN` | `data/` not writable | check `ReadWritePaths`, `ls -ld data` |
-| `database is locked` | long write / external tool | retry; WAL allows readers; avoid writing with external sqlite CLIs |
-| Checkout 500 | backend catalogue unreachable | `curl "$SUPABASE_URL/rest/v1/"` with the publishable key |
-| Admin shows "Accès réservé" | user has no `admin` role | grant role via Supabase/Lovable admin |
-| WhatsApp doesn't open | pop-up/desktop session | open `https://wa.me/212776566089` manually |
-| Sitemap 404 | build ran without postbuild | `npm run sitemap`, redeploy |
+| Symptom                     | Cause                         | Fix                                                                |
+| --------------------------- | ----------------------------- | ------------------------------------------------------------------ |
+| 502 from Caddy              | Node down / port mismatch     | `systemctl status proteinstore`                                    |
+| `SQLITE_CANTOPEN`           | `data/` not writable          | check `ReadWritePaths`, `ls -ld data`                              |
+| `database is locked`        | long write / external tool    | retry; WAL allows readers; avoid writing with external sqlite CLIs |
+| Checkout 500                | backend catalogue unreachable | `curl "$SUPABASE_URL/rest/v1/"` with the publishable key           |
+| Admin shows "Accès réservé" | user has no `admin` role      | grant role via Supabase/Lovable admin                              |
+| WhatsApp doesn't open       | pop-up/desktop session        | open `https://wa.me/212776566089` manually                         |
+| Sitemap 404                 | build ran without postbuild   | `npm run sitemap`, redeploy                                        |
 
-## 14. Known limitations
+## 15. Known limitations
 
 1. WhatsApp messages are opened by an admin; no Business API auto-send.
 2. SQLite is single-host (no replication); backups are manual/cron.
@@ -158,13 +164,13 @@ rm -rf .output && mv .output.prev .output && systemctl start proteinstore
 5. French only; no Arabic/RTL.
 6. `drizzle/` is reference-only.
 
-## 15. Roadmap
+## 16. Roadmap
 
-| Priority | Item |
-|---|---|
-| P0 | `proteinestore.pro` DNS + vhost; set `VITE_SITE_URL` and rebuild |
-| P1 | Encrypted off-host backups; privacy notice; MFA |
-| P1 | Playwright E2E (checkout → tracking → admin) + axe in CI |
-| P2 | WhatsApp Business API for automatic sending and delivery receipts |
-| P2 | Admin audit log, CSV export, low-stock alerts |
-| P3 | Card payments, B2B tiers, Arabic/RTL |
+| Priority | Item                                                              |
+| -------- | ----------------------------------------------------------------- |
+| P0       | `proteinestore.pro` DNS + vhost; set `VITE_SITE_URL` and rebuild  |
+| P1       | Encrypted off-host backups; privacy notice; MFA                   |
+| P1       | Playwright E2E (checkout → tracking → admin) + axe in CI          |
+| P2       | WhatsApp Business API for automatic sending and delivery receipts |
+| P2       | Admin audit log, CSV export, low-stock alerts                     |
+| P3       | Card payments, B2B tiers, Arabic/RTL                              |

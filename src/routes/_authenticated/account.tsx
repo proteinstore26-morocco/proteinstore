@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated/account")({
 });
 
 function Account() {
-  const { user, isAdmin } = useAuth();
+  const { user, account, isManager, isSuspended } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   async function logout() {
@@ -23,9 +23,11 @@ function Account() {
     <main className="container-ps section-ps max-w-xl">
       <h1 className="headline text-4xl">Mon compte</h1>
       <p className="mt-4 text-muted-foreground">{user?.email}</p>
+      {account && <p className="mt-1 text-xs text-muted-foreground">Rôle : {account.role}</p>}
+      {isSuspended && <p className="mt-3 text-sm text-destructive">Compte suspendu. Contactez un administrateur.</p>}
       <div className="mt-8 flex flex-wrap gap-3">
         <Button asChild variant="outline"><Link to="/track-order">Suivre une commande</Link></Button>
-        {isAdmin && <Button asChild><Link to="/admin">Administration</Link></Button>}
+        {isManager && <Button asChild><Link to="/admin">Administration</Link></Button>}
         <Button variant="ghost" onClick={logout}>Déconnexion</Button>
       </div>
     </main>
