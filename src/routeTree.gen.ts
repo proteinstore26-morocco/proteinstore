@@ -23,6 +23,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminCatalogueRouteImport } from './routes/_authenticated/admin.catalogue'
 import { Route as AuthenticatedAdminImportRouteImport } from './routes/_authenticated/admin.import'
 import { Route as AuthenticatedAdminStoreRouteImport } from './routes/_authenticated/admin.store'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
@@ -96,6 +97,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const AuthenticatedAdminCatalogueRoute =
+  AuthenticatedAdminCatalogueRouteImport.update({
+    id: '/catalogue',
+    path: '/catalogue',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminImportRoute =
   AuthenticatedAdminImportRouteImport.update({
     id: '/import',
@@ -126,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/auth/reset': typeof AuthResetRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/admin/catalogue': typeof AuthenticatedAdminCatalogueRoute
   '/admin/import': typeof AuthenticatedAdminImportRoute
   '/admin/store': typeof AuthenticatedAdminStoreRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -143,6 +151,7 @@ export interface FileRoutesByTo {
   '/account': typeof AuthenticatedAccountRoute
   '/auth/reset': typeof AuthResetRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/admin/catalogue': typeof AuthenticatedAdminCatalogueRoute
   '/admin/import': typeof AuthenticatedAdminImportRoute
   '/admin/store': typeof AuthenticatedAdminStoreRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -163,6 +172,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/auth/reset': typeof AuthResetRoute
   '/product/$slug': typeof ProductSlugRoute
+  '/_authenticated/admin/catalogue': typeof AuthenticatedAdminCatalogueRoute
   '/_authenticated/admin/import': typeof AuthenticatedAdminImportRoute
   '/_authenticated/admin/store': typeof AuthenticatedAdminStoreRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/auth/reset'
     | '/product/$slug'
+    | '/admin/catalogue'
     | '/admin/import'
     | '/admin/store'
     | '/admin/users'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/auth/reset'
     | '/product/$slug'
+    | '/admin/catalogue'
     | '/admin/import'
     | '/admin/store'
     | '/admin/users'
@@ -219,6 +231,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/auth/reset'
     | '/product/$slug'
+    | '/_authenticated/admin/catalogue'
     | '/_authenticated/admin/import'
     | '/_authenticated/admin/store'
     | '/_authenticated/admin/users'
@@ -338,6 +351,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/catalogue': {
+      id: '/_authenticated/admin/catalogue'
+      path: '/catalogue'
+      fullPath: '/admin/catalogue'
+      preLoaderRoute: typeof AuthenticatedAdminCatalogueRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/import': {
       id: '/_authenticated/admin/import'
       path: '/import'
@@ -363,6 +383,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminCatalogueRoute: typeof AuthenticatedAdminCatalogueRoute
   AuthenticatedAdminImportRoute: typeof AuthenticatedAdminImportRoute
   AuthenticatedAdminStoreRoute: typeof AuthenticatedAdminStoreRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
@@ -370,6 +391,7 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminCatalogueRoute: AuthenticatedAdminCatalogueRoute,
   AuthenticatedAdminImportRoute: AuthenticatedAdminImportRoute,
   AuthenticatedAdminStoreRoute: AuthenticatedAdminStoreRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,

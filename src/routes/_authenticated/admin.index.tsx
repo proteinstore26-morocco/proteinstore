@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   FileText,
   Download,
+  FileSpreadsheet,
   LayoutDashboard,
   Package,
   Search,
@@ -142,6 +143,13 @@ function AdminDashboard() {
             <Button asChild variant="outline">
               <Link to="/admin/import">
                 <Download /> Importer
+              </Link>
+            </Button>
+          )}
+          {isAdmin && (
+            <Button asChild variant="outline">
+              <Link to="/admin/catalogue">
+                <FileSpreadsheet /> Catalogue CSV
               </Link>
             </Button>
           )}
