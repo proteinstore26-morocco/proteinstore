@@ -64,7 +64,7 @@ npm run dev                      # Vite dev server (prints its URL)
 If your shell exports `NODE_ENV=production`, add `--include=dev` to the install command.
 
 ```bash
-npm test            # 71 unit tests (store, accounts, pricing, RBAC, WhatsApp, SEO, phones)
+npm test            # 73 unit tests (store, accounts, pricing, RBAC, WhatsApp, SEO, phones)
 npx tsc --noEmit    # strict type-check
 npm run build       # → .output/server/index.mjs + public/sitemap.xml (postbuild)
 node .output/server/index.mjs   # production server on $PORT
@@ -100,16 +100,16 @@ See [`docs/07-runbook.md`](docs/07-runbook.md).
 
 - Unit: `deploy/proteinstore.service` → port **5077**, writable `data/` (`ReadWritePaths`)
 - Vhost: `deploy/Caddyfile.snippet` → `/etc/caddy/Caddyfile`, then `caddy reload`
-- Smoke: `node scripts/smoke.mjs https://proteinstore.46.225.2.52.sslip.io` (21 checks)
+- Smoke: `node scripts/smoke.mjs https://proteinstore.46.225.2.52.sslip.io` (23 checks)
 
 ## Quality
 
 | Check                          | Result                                             |
 | ------------------------------ | -------------------------------------------------- |
 | `tsc --noEmit`                 | ✅                                                 |
-| `npm test`                     | ✅ 48/48                                           |
-| `npm run build` + sitemap      | ✅ 72 URLs                                         |
-| Production smoke               | ✅ 21/21                                           |
+| `npm test`                     | ✅ 73/73                                           |
+| `npm run build` + sitemap      | ✅ 73 URLs                                         |
+| Production smoke               | ✅ 23/23                                           |
 | Order RPC + tracking + DB rows | ✅ exercised, QA order removed                     |
 | Unauthenticated admin API      | ✅ rejected                                        |
 | `npm run lint`                 | ❌ pre-existing Prettier debt; touched files clean |
@@ -132,6 +132,7 @@ See [`docs/07-runbook.md`](docs/07-runbook.md).
 - [Product import (draft-only)](docs/11-product-import.md)
 - [Product photos (1–5)](docs/12-product-photos.md)
 - [Catalogue CSV import/export](docs/13-catalogue-csv.md)
+- [Partner logos](docs/14-partner-logos.md)
 
 ## Known limitations
 

@@ -33,26 +33,27 @@
 
 ## 3. Findings
 
-| ID     | Severity   | Finding                                                                                                                       | Status                                                             |
-| ------ | ---------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| SEC-01 | High (was) | COD creation required a service-role key.                                                                                     | **CLOSED** — local SQLite store; no Supabase write.                |
-| SEC-02 | Medium     | CSP needs `script-src 'unsafe-inline'` for TanStack hydration and JSON-LD.                                                    | Mitigated (documented)                                             |
-| SEC-03 | Medium     | No global admin audit trail (only per-order events).                                                                          | **OPEN** — per-order actor is recorded; global auth log pending    |
-| SEC-04 | Medium     | The customer can edit the prefilled WhatsApp message.                                                                         | Accepted — shop verifies before dispatch                           |
-| SEC-05 | Medium     | Customer PII is stored unencrypted in SQLite and its backups.                                                                 | **OPEN** — root-only perms today; recommend LUKS/encrypted backups |
-| SEC-06 | Low        | `.env` was committed upstream (publishable key only).                                                                         | Mitigated; rotate if desired                                       |
-| SEC-07 | Low        | No MFA on admin accounts.                                                                                                     | **OPEN** — enable Supabase TOTP                                    |
-| SEC-08 | Low        | Dependency audit is non-blocking in CI.                                                                                       | **OPEN**                                                           |
-| SEC-09 | Low        | No privacy notice; WhatsApp/Meta and local DB process PII.                                                                    | **OPEN** — legal content needed                                    |
-| SEC-10 | Info       | `orders` in the managed backend has no INSERT policy. Intentional.                                                            | Accepted                                                           |
-| SEC-11 | Fixed      | Security headers (HSTS, nosniff, frame denial, referrer, permissions) live via Caddy.                                         | ✅ verified                                                        |
-| SEC-12 | Fixed      | Editor telemetry, preview-auth broker and branding removed.                                                                   | ✅                                                                 |
-| SEC-13 | Fixed      | Public order/tracking endpoints rate-limited; admin endpoints authenticated.                                                  | ✅ verified                                                        |
-| SEC-14 | Fixed      | Local DB never exposed by the web server; server-only imports.                                                                | ✅                                                                 |
-| SEC-15 | Info       | Order writes are ACID; counters block duplicate order/invoice numbers.                                                        | ✅                                                                 |
-| SEC-16 | Medium     | Local role demotion does not revoke a legacy Supabase `admin`/`super_admin` row; direct REST calls would keep RLS privileges. | **OPEN** — also remove the Supabase role in the backend dashboard  |
-| SEC-17 | Medium     | Local accounts/invitations store e-mail addresses in SQLite and backups.                                                      | Covered by `SEC-05` (encrypt backups)                              |
-| SEC-18 | Fixed      | Root self-demotion, self-suspension and last-root removal are blocked; role changes are audited.                              | ✅ verified on staging                                             |
+| ID     | Severity   | Finding                                                                                                                                 | Status                                                             |
+| ------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| SEC-01 | High (was) | COD creation required a service-role key.                                                                                               | **CLOSED** — local SQLite store; no Supabase write.                |
+| SEC-02 | Medium     | CSP needs `script-src 'unsafe-inline'` for TanStack hydration and JSON-LD.                                                              | Mitigated (documented)                                             |
+| SEC-03 | Medium     | No global admin audit trail (only per-order events).                                                                                    | **OPEN** — per-order actor is recorded; global auth log pending    |
+| SEC-04 | Medium     | The customer can edit the prefilled WhatsApp message.                                                                                   | Accepted — shop verifies before dispatch                           |
+| SEC-05 | Medium     | Customer PII is stored unencrypted in SQLite and its backups.                                                                           | **OPEN** — root-only perms today; recommend LUKS/encrypted backups |
+| SEC-06 | Low        | `.env` was committed upstream (publishable key only).                                                                                   | Mitigated; rotate if desired                                       |
+| SEC-07 | Low        | No MFA on admin accounts.                                                                                                               | **OPEN** — enable Supabase TOTP                                    |
+| SEC-08 | Low        | Dependency audit is non-blocking in CI.                                                                                                 | **OPEN**                                                           |
+| SEC-09 | Low        | No privacy notice; WhatsApp/Meta and local DB process PII.                                                                              | **OPEN** — legal content needed                                    |
+| SEC-10 | Info       | `orders` in the managed backend has no INSERT policy. Intentional.                                                                      | Accepted                                                           |
+| SEC-11 | Fixed      | Security headers (HSTS, nosniff, frame denial, referrer, permissions) live via Caddy.                                                   | ✅ verified                                                        |
+| SEC-12 | Fixed      | Editor telemetry, preview-auth broker and branding removed.                                                                             | ✅                                                                 |
+| SEC-13 | Fixed      | Public order/tracking endpoints rate-limited; admin endpoints authenticated.                                                            | ✅ verified                                                        |
+| SEC-14 | Fixed      | Local DB never exposed by the web server; server-only imports.                                                                          | ✅                                                                 |
+| SEC-15 | Info       | Order writes are ACID; counters block duplicate order/invoice numbers.                                                                  | ✅                                                                 |
+| SEC-16 | Medium     | Local role demotion does not revoke a legacy Supabase `admin`/`super_admin` row; direct REST calls would keep RLS privileges.           | **OPEN** — also remove the Supabase role in the backend dashboard  |
+| SEC-17 | Medium     | Local accounts/invitations store e-mail addresses in SQLite and backups.                                                                | Covered by `SEC-05` (encrypt backups)                              |
+| SEC-18 | Fixed      | Root self-demotion, self-suspension and last-root removal are blocked; role changes are audited.                                        | ✅ verified on staging                                             |
+| SEC-22 | Fixed      | Partner logo upload is admin-only, magic-byte/size validated, UUID-named, and `logo_url` accepts only HTTPS or `/uploads/partners/...`. | ✅ verified                                                        |
 
 ## 4. OWASP Top 10 (2021)
 

@@ -101,6 +101,9 @@ XLSX is not supported: save as CSV UTF-8. See [13-catalogue-csv.md](13-catalogue
 `/admin/import` (admin/root) imports third-party products as drafts. Cloudflare-protected sites must use the
 HTML mode (saved page); the server never bypasses anti-bot protection. See [11-product-import.md](11-product-import.md).
 
+Partner logos are managed from `/admin/store` → Partenaires and stored in the shared uploads directory.
+See [14-partner-logos.md](14-partner-logos.md).
+
 ## 11. Admin access
 
 No password is stored on this host. Use `/auth` → **Mot de passe oublié ?** → `/auth/reset`. The backend must
