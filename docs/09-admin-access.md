@@ -1,8 +1,9 @@
 # Admin access & password reset
 
 There is **no default password** and none is stored on this server. Authentication and password hashes live in
-the managed Supabase-compatible backend. The account convention is `admin@proteinestore.ma`; the database
-trigger grants `admin` to that address on signup (if the trigger is still installed).
+the managed Supabase-compatible backend. The account convention is `admin@proteinestore.ma`. Since the local role system was added, the app
+authorizes from `data/proteinstore.db`; legacy Supabase roles are only used to seed the first root
+(`super_admin → root`).
 
 ## Reset your password (self-service)
 
@@ -34,15 +35,19 @@ If you cannot change the redirect allowlist, reset the password from the backend
 
 ## Grant the admin role
 
-The application checks `public.user_roles`. If the account exists but cannot open `/admin`, run:
+Roles are managed locally in **`/admin/users`** (root only). If the account exists but cannot open
+`/admin`, check its local role there.
+
+Legacy fallback for an account that has never logged in since the local role system was deployed:
 
 ```sql
+-- Only used to seed the local account on first login; the local role then wins.
 insert into public.user_roles (user_id, role)
-select id, 'admin' from auth.users where lower(email) = lower('admin@proteinestore.ma')
+select id, 'super_admin' from auth.users where lower(email) = lower('admin1@proteinestore.ma')
 on conflict (user_id, role) do nothing;
 ```
 
-For staff management (grant/revoke other admins), use `super_admin` instead of `admin`.
+Do not rely on Supabase roles for day-to-day management: use `/admin/users`.
 
 ## Verify
 
