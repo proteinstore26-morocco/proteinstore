@@ -103,6 +103,14 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   useEffect(() => {
+    // If the backend falls back to the Site URL instead of /auth/reset, carry
+    // the Supabase recovery hash over to the reset page.
+    const hash = window.location.hash;
+    if (window.location.pathname !== "/auth/reset" && /(?:^#|&)type=recovery(?:&|$)/.test(hash)) {
+      window.location.replace(`/auth/reset${hash}`);
+    }
+  }, []);
+  useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       router.invalidate();
