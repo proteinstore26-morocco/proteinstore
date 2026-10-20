@@ -34,7 +34,7 @@ export function useAuth() {
         return;
       }
       try {
-        const result = await syncRef.current();
+        const result = await syncRef.current({ data: undefined });
         if (alive) setAccount(result.account);
       } catch (error) {
         console.error("[auth] account sync failed", error);

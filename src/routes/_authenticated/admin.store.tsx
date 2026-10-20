@@ -97,12 +97,12 @@ function Admin() {
   const navigate = useNavigate();
   const query = useQuery({
     queryKey: ["admin", "store"],
-    queryFn: () => fetchData(),
+    queryFn: () => fetchData({ data: undefined }),
     retry: false,
   });
   const staff = useQuery({
     queryKey: ["admin", "staff"],
-    queryFn: () => fetchStaff(),
+    queryFn: () => fetchStaff({ data: undefined }),
     enabled: false,
     retry: false,
   });

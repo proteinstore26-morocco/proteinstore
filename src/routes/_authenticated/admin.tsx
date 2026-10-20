@@ -56,13 +56,13 @@ function AdminDashboard() {
 
   const stats = useQuery({
     queryKey: ["admin", "stats"],
-    queryFn: () => statsFn(),
+    queryFn: () => statsFn({ data: undefined }),
     retry: false,
     enabled: isManager,
   });
   const orders = useQuery({
     queryKey: ["admin", "orders", "overview"],
-    queryFn: () => ordersFn({ data: {} }),
+    queryFn: () => ordersFn({ data: undefined }),
     retry: false,
     enabled: isManager,
   });

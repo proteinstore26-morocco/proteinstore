@@ -53,7 +53,7 @@ export function UsersPanel() {
 
   const dashboard = useQuery({
     queryKey: ["admin", "users"],
-    queryFn: () => dashboardFn(),
+    queryFn: () => dashboardFn({ data: undefined }),
     retry: false,
   });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["admin", "users"] });

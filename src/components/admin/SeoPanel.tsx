@@ -12,7 +12,11 @@ const barTone = (score: number) =>
 
 export function SeoPanel() {
   const auditFn = useServerFn(getSeoAudit);
-  const audit = useQuery({ queryKey: ["admin", "seo"], queryFn: () => auditFn(), retry: false });
+  const audit = useQuery({
+    queryKey: ["admin", "seo"],
+    queryFn: () => auditFn({ data: undefined }),
+    retry: false,
+  });
 
   if (audit.isPending)
     return <p className="py-12 text-center text-sm text-muted-foreground">Analyse du catalogue…</p>;

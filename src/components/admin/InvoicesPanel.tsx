@@ -46,7 +46,7 @@ export function InvoicesPanel() {
 
   const invoices = useQuery({
     queryKey: ["admin", "invoices"],
-    queryFn: () => listFn(),
+    queryFn: () => listFn({ data: undefined }),
     retry: false,
   });
   const order = useQuery({
