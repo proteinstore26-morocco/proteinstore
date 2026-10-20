@@ -139,6 +139,14 @@ function Admin() {
         await saveProduct({
           data: productEditSchema.parse({
             id: editing.value.id,
+            image_urls: (() => {
+              try {
+                const parsed = JSON.parse(text(f, "image_urls") || "[]");
+                return Array.isArray(parsed) ? parsed : [];
+              } catch {
+                return [];
+              }
+            })(),
             title: text(f, "title"),
             brand: text(f, "brand"),
             description: text(f, "description"),

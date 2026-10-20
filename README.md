@@ -63,7 +63,7 @@ npm run dev                      # Vite dev server (prints its URL)
 If your shell exports `NODE_ENV=production`, add `--include=dev` to the install command.
 
 ```bash
-npm test            # 61 unit tests (store, accounts, pricing, RBAC, WhatsApp, SEO, phones)
+npm test            # 64 unit tests (store, accounts, pricing, RBAC, WhatsApp, SEO, phones)
 npx tsc --noEmit    # strict type-check
 npm run build       # → .output/server/index.mjs + public/sitemap.xml (postbuild)
 node .output/server/index.mjs   # production server on $PORT
@@ -129,6 +129,7 @@ See [`docs/07-runbook.md`](docs/07-runbook.md).
 - [Admin access & password reset](docs/09-admin-access.md)
 - [Users, roles & root dashboard](docs/10-users-roles.md)
 - [Product import (draft-only)](docs/11-product-import.md)
+- [Product photos (1–5)](docs/12-product-photos.md)
 
 ## Known limitations
 

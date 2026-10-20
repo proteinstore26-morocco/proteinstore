@@ -8,6 +8,7 @@ npm run build
 
 echo "==> backup test orders"
 node scripts/backup-orders.mjs
+./scripts/backup-uploads.sh
 
 echo "==> restart test unit"
 systemctl restart proteinstore-test

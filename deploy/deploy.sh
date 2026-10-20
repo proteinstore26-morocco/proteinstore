@@ -18,6 +18,7 @@ npm run build
 
 echo "==> backup orders"
 node scripts/backup-orders.mjs
+./scripts/backup-uploads.sh
 
 echo "==> restart (our unit only)"
 systemctl restart proteinstore
