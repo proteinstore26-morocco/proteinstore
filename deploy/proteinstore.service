@@ -25,6 +25,7 @@ PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=read-only
 ReadWritePaths=/root/Said/proteinstore/data
+ReadWritePaths=/srv/proteinstore-shared/uploads
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
