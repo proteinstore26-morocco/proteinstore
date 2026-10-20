@@ -331,6 +331,12 @@ export function CatalogueIoPanel() {
           />
         </div>
 
+        <p className="mt-2 text-xs text-muted-foreground">
+          Une ligne contenant un champ invalide (prix, stock, catégorie, statut…) est{" "}
+          <strong>ignorée</strong> : elle n'est pas écrite et l'import continue avec les lignes
+          suivantes. Le rapport d'erreurs la liste.
+        </p>
+
         {progress > 0 && (
           <div className="mt-4">
             <Progress value={progress} />
@@ -489,8 +495,15 @@ export function CatalogueIoPanel() {
                 </p>
                 <p className="mt-1 text-sm">
                   {result.created.length} créé(s), {result.updated.length} mis à jour,{" "}
-                  {result.failed.length} échec(s).
+                  {result.failed.length} échec(s), {result.invalidLines.length} ligne(s) ignorée(s)
+                  pour champ invalide.
                 </p>
+                {result.invalidLines.length > 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Les lignes ignorées n'ont pas été écrites ; consultez le rapport d'erreurs pour
+                    les corriger.
+                  </p>
+                )}
                 {result.failed.length > 0 && (
                   <ul className="mt-2 space-y-1 text-xs text-destructive">
                     {result.failed.map((entry) => (

@@ -65,7 +65,18 @@ The same content is available from **Modèle** in the UI.
 - Duplicates inside the file (same normalized Nom + Marque) are rejected on the second occurrence.
 - `category_id` is resolved from existing `categories`; a label that does not exist in the DB is an error.
 
-## 4. Duplicate handling
+## 4. Comportement en cas d'erreur
+
+- Une ligne avec **au moins un champ invalide** est entièrement ignorée : aucun champ n'est écrit partiellement.
+- L'import **continue** avec les lignes suivantes ; les lignes valides sont créées ou mises à jour.
+- Les lignes ignorées sont listées dans le rapport d'erreurs (`Ligne;Nom;Marque;Erreur`).
+- Un en-tête manquant bloque tout l'import (impossible de mapper les colonnes) ; un fichier sans aucune ligne
+  valide affiche une erreur et n'écrit rien.
+- Les erreurs d'écriture Supabase (droits, doublon ambigu) sont propres à la ligne et n'interrompent pas les
+  autres.
+- L'import n'est pas une transaction globale : les lignes valides déjà écrites restent en place.
+
+## 5. Duplicate handling
 
 Existing products are indexed by `normalize(Nom) + normalize(Marque)` (accents, case and punctuation
 insensitive).
@@ -76,7 +87,7 @@ insensitive).
 - **Several matches** → line rejected (ambiguous), no write.
 - The update preserves `slug`, `image_urls`, `sku`, `nutrition_facts`, reviews and sales counters.
 
-## 5. Implementation
+## 6. Implementation
 
 | File                                            | Role                                                                 |
 | ----------------------------------------------- | -------------------------------------------------------------------- |
