@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowUpRight,
   FileText,
+  Download,
   LayoutDashboard,
   Package,
   Search,
@@ -134,6 +135,13 @@ function AdminDashboard() {
             <Button asChild variant="outline">
               <Link to="/admin/store">
                 <Package /> Catalogue & partenaires
+              </Link>
+            </Button>
+          )}
+          {isAdmin && (
+            <Button asChild variant="outline">
+              <Link to="/admin/import">
+                <Download /> Importer
               </Link>
             </Button>
           )}
