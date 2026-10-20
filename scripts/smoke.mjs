@@ -42,7 +42,10 @@ add(
 
 const track = await get("/track-order");
 add("track-order 200", track.status === 200, `status=${track.status}`);
-add("tracking shows lookup form", track.body.includes("Suivi de commande") && track.body.includes("N° de commande"));
+add(
+  "tracking shows lookup form",
+  track.body.includes("Suivi de commande") && track.body.includes("N° de commande"),
+);
 
 const sitemap = await get("/sitemap.xml");
 add("sitemap 200", sitemap.status === 200, `status=${sitemap.status}`);
@@ -53,6 +56,12 @@ add("robots declares sitemap", robots.body.includes("Sitemap:"));
 
 const admin = await get("/admin");
 add("admin shell 200", admin.status === 200, `status=${admin.status}`);
+
+const login = await get("/auth");
+add("login offers password reset", login.body.includes("Mot de passe oublié"));
+
+const reset = await get("/auth/reset");
+add("reset page 200", reset.status === 200, `status=${reset.status}`);
 
 const missing = await get("/this-route-does-not-exist");
 add("unknown route 404", missing.status === 404, `status=${missing.status}`);

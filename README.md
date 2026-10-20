@@ -24,7 +24,8 @@ no service-role key. The Supabase-compatible backend is only used for catalogue,
 
 ## Admin dashboard
 
-`/auth` → sign in as `admin` / `super_admin` → `/admin`.
+`/auth` → sign in as `admin` / `super_admin` → `/admin`. Forgot the password? Use **« Mot de passe oublié ? »**
+(see [admin access](docs/09-admin-access.md)).
 
 - **Overview:** revenue, orders, customers, average basket, pending queue, recent orders, top products.
 - **Orders:** filters/search, full detail, status flow, internal notes, event history, invoice generation.
@@ -123,6 +124,7 @@ See [`docs/07-runbook.md`](docs/07-runbook.md).
 - [QA plan & results](docs/06-qa.md)
 - [Runbook, rollback, roadmap](docs/07-runbook.md)
 - [Test / staging instance](docs/08-staging.md)
+- [Admin access & password reset](docs/09-admin-access.md)
 
 ## Known limitations
 
