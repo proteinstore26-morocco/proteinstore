@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { MAX_PRODUCT_IMAGES, isAllowedProductImageUrl } from "./image-upload";
+import {
+  MAX_PRODUCT_IMAGES,
+  isAllowedPartnerLogoUrl,
+  isAllowedProductImageUrl,
+} from "./image-upload";
 
 export const canManageStore = (roles: string[]) =>
   roles.includes("admin") || roles.includes("super_admin");
@@ -69,4 +73,10 @@ export const partnerEditSchema = z.object({
     .or(z.literal("")),
   is_active: z.boolean(),
   display_order: z.number().int().min(0),
+  logo_url: z
+    .string()
+    .trim()
+    .max(2000)
+    .refine(isAllowedPartnerLogoUrl, "URL de logo invalide.")
+    .nullable(),
 });

@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   detectImageExtension,
+  isAllowedPartnerLogoUrl,
   isAllowedProductImageUrl,
   MAX_PRODUCT_IMAGES,
 } from "@/lib/image-upload";
-import { productEditSchema } from "@/lib/admin-rules";
+import { partnerEditSchema, productEditSchema } from "@/lib/admin-rules";
 
 const base = {
   id: "5336e9b8-a711-4f1c-8eb1-8c41b61c4029",
@@ -46,6 +47,36 @@ describe("image upload helpers", () => {
     expect(isAllowedProductImageUrl("/etc/passwd")).toBe(false);
     expect(isAllowedProductImageUrl("javascript:alert(1)")).toBe(false);
     expect(isAllowedProductImageUrl("data:image/png;base64,AAAA")).toBe(false);
+  });
+
+  it("accepts only HTTPS or uploaded partner logos", () => {
+    expect(isAllowedPartnerLogoUrl("https://cdn.example.com/logo.png")).toBe(true);
+    expect(isAllowedPartnerLogoUrl("/uploads/partners/abc-123.png")).toBe(true);
+    expect(isAllowedPartnerLogoUrl("/uploads/products/abc.png")).toBe(false);
+    expect(isAllowedPartnerLogoUrl("http://cdn.example.com/logo.png")).toBe(false);
+    expect(isAllowedPartnerLogoUrl("javascript:alert(1)")).toBe(false);
+  });
+
+  it("validates partner logo_url in the editor schema", () => {
+    const basePartner = {
+      name: "Test Gym",
+      location: "Kénitra",
+      address: "",
+      description: "",
+      discount_code: "TEST",
+      website_url: "",
+      instagram_url: "",
+      is_active: true,
+      display_order: 0,
+    };
+    expect(partnerEditSchema.safeParse({ ...basePartner, logo_url: null }).success).toBe(true);
+    expect(
+      partnerEditSchema.safeParse({ ...basePartner, logo_url: "/uploads/partners/abc.png" })
+        .success,
+    ).toBe(true);
+    expect(
+      partnerEditSchema.safeParse({ ...basePartner, logo_url: "http://evil/logo.png" }).success,
+    ).toBe(false);
   });
 
   it("enforces a maximum of five photos per product", () => {

@@ -182,6 +182,7 @@ function Admin() {
                 "instagram_url",
               ].map((k) => [k, text(f, k)]),
             ),
+            logo_url: text(f, "logo_url") === "" ? null : text(f, "logo_url"),
             is_active: f.get("is_active") === "on",
             display_order: Number(f.get("display_order")),
           }),
@@ -567,9 +568,21 @@ function Admin() {
             {partners.map((p) => (
               <article key={p.id} className="rounded-lg border bg-card p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-semibold">{p.name}</h2>
-                    <p className="mt-1 text-sm text-muted-foreground">{p.location}</p>
+                  <div className="flex items-center gap-3">
+                    {p.logo_url && (
+                      <div className="grid size-12 shrink-0 place-items-center rounded-md bg-white p-1">
+                        <img
+                          src={p.logo_url}
+                          alt=""
+                          className="max-h-full max-w-full object-contain"
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <h2 className="text-lg font-semibold">{p.name}</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">{p.location}</p>
+                    </div>
                   </div>
                   <Button
                     variant="ghost"

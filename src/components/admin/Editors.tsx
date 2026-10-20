@@ -22,8 +22,12 @@ import {
 import { ImagePlus, Link2, Loader2, Save, Trash2 } from "lucide-react";
 import { statusLabels, orderStatusSchema } from "@/lib/admin-rules";
 import { mad } from "@/lib/pricing";
-import { MAX_PRODUCT_IMAGES, isAllowedProductImageUrl } from "@/lib/image-upload";
-import { uploadProductImage } from "@/lib/uploads.functions";
+import {
+  MAX_PRODUCT_IMAGES,
+  isAllowedPartnerLogoUrl,
+  isAllowedProductImageUrl,
+} from "@/lib/image-upload";
+import { uploadPartnerLogo, uploadProductImage } from "@/lib/uploads.functions";
 import { useServerFn } from "@tanstack/react-start";
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -359,9 +363,158 @@ export function ProductFields({
   );
 }
 
+async function toLogoPayload(
+  file: File,
+): Promise<{ contentType: "image/png" | "image/jpeg" | "image/webp"; data: string }> {
+  const allowed = ["image/jpeg", "image/png", "image/webp"];
+  if (!allowed.includes(file.type))
+    throw new Error("Format non supporté. Utilisez PNG, JPEG ou WebP.");
+  if (file.size > 10 * 1024 * 1024)
+    throw new Error("Logo trop lourd (max 10 Mo avant compression).");
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 600 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Compression impossible dans ce navigateur.");
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close?.();
+    const png = canvas.toDataURL("image/png");
+    if (png.length <= 5_000_000) return { contentType: "image/png", data: png.split(",")[1] ?? "" };
+    // Very large transparent logo: fall back to JPEG on white.
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const jpeg = canvas.toDataURL("image/jpeg", 0.9);
+    return { contentType: "image/jpeg", data: jpeg.split(",")[1] ?? "" };
+  } catch (error) {
+    if (file.size > 4 * 1024 * 1024)
+      throw error instanceof Error ? error : new Error("Logo trop lourd (max 4 Mo).");
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(new Error("Lecture du fichier impossible."));
+      reader.readAsDataURL(file);
+    });
+    return {
+      contentType: file.type as "image/png" | "image/jpeg" | "image/webp",
+      data: dataUrl.split(",")[1] ?? "",
+    };
+  }
+}
+
 export function PartnerFields({ partner }: { partner?: Tables<"partners"> | undefined }) {
+  const upload = useServerFn(uploadPartnerLogo);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [logoUrl, setLogoUrl] = useState(partner?.logo_url ?? "");
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  function addUrl() {
+    const candidate = url.trim();
+    if (!isAllowedPartnerLogoUrl(candidate)) {
+      setError("URL invalide : utilisez https://… ou un logo uploadé.");
+      return;
+    }
+    setLogoUrl(candidate);
+    setUrl("");
+    setError("");
+  }
+
+  async function uploadLogo(file: File | undefined) {
+    if (!file) return;
+    setBusy(true);
+    setError("");
+    try {
+      const payload = await toLogoPayload(file);
+      const result = await upload({ data: payload });
+      setLogoUrl(result.url);
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Upload impossible.");
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
   return (
     <div className="grid gap-4 sm:grid-cols-2">
+      <div className="sm:col-span-2">
+        <Label>Logo du partenaire</Label>
+        <input type="hidden" name="logo_url" value={logoUrl} />
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="hidden"
+          onChange={(event) => void uploadLogo(event.target.files?.[0])}
+        />
+        <div className="mt-2 flex flex-wrap items-center gap-4">
+          <div className="grid size-24 shrink-0 place-items-center rounded-lg bg-white p-2">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="Logo du partenaire"
+                className="max-h-full max-w-full object-contain"
+              />
+            ) : (
+              <ImagePlus className="size-8 text-neutral-400" />
+            )}
+          </div>
+          <div className="min-w-56 flex-1 space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileRef.current?.click()}
+                disabled={busy}
+              >
+                {busy ? <Loader2 className="animate-spin" /> : <ImagePlus />} Choisir un logo
+              </Button>
+              {logoUrl && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setLogoUrl("")}
+                  disabled={busy}
+                >
+                  <Trash2 /> Retirer
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Input
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+                placeholder="https://exemple.com/logo.png"
+                aria-label="URL du logo"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addUrl}
+                disabled={busy || !url.trim()}
+              >
+                <Link2 /> Ajouter l'URL
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              PNG/JPEG/WebP, redimensionné à 600 px max. Affiché sur le site public.
+            </p>
+          </div>
+        </div>
+        {error && (
+          <p role="alert" className="mt-2 text-xs text-destructive">
+            {error}
+          </p>
+        )}
+      </div>
+
       <Field label="Nom de la salle">
         <Input name="name" required defaultValue={partner?.name ?? ""} />
       </Field>
@@ -414,6 +567,7 @@ export function PartnerFields({ partner }: { partner?: Tables<"partners"> | unde
     </div>
   );
 }
+
 export type AdminOrder = Tables<"orders"> & { order_items: Tables<"order_items">[] };
 export function OrderFields({ order }: { order: AdminOrder }) {
   const address =

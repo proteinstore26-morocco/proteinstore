@@ -44,3 +44,16 @@ export function isAllowedProductImageUrl(value: string): boolean {
     return false;
   }
 }
+
+/** Partner logos: external HTTPS or an uploaded `/uploads/partners/...` path. */
+export function isAllowedPartnerLogoUrl(value: string): boolean {
+  const url = value.trim();
+  if (url.length === 0 || url.length > 2000) return false;
+  if (/^\/uploads\/partners\/[a-z0-9-]+\.(jpg|jpeg|png|webp)$/i.test(url)) return true;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && !parsed.username && !parsed.password;
+  } catch {
+    return false;
+  }
+}
