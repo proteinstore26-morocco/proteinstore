@@ -1,6 +1,7 @@
 # Catalogue CSV — import & export
 
-Admin page: **`/admin/catalogue`** (admin/root).
+Admin page: **`/admin/catalogue`** (admin/root). Accessible aussi depuis **`/admin/store`** : bouton
+**Import / Export** dans l'en-tête et bouton **Importer / Exporter CSV** dans l'onglet **Produits**.
 
 ## 1. Format decision
 

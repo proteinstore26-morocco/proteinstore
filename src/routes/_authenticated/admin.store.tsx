@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
+  FileSpreadsheet,
   Package,
   ShoppingBag,
   Users,
@@ -316,6 +317,11 @@ function Admin() {
           <Button asChild variant="outline">
             <Link to="/admin">Tableau de bord</Link>
           </Button>
+          <Button asChild variant="outline">
+            <Link to="/admin/catalogue">
+              <FileSpreadsheet /> Import / Export
+            </Link>
+          </Button>
           {data.isSuperAdmin && (
             <Button asChild variant="outline">
               <Link to="/admin/users">
@@ -437,7 +443,14 @@ function Admin() {
           </div>
         </TabsContent>
         <TabsContent value="products">
-          <p className="mb-4 text-xs text-muted-foreground">{products.length} produits</p>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">{products.length} produits</p>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/admin/catalogue">
+                <FileSpreadsheet /> Importer / Exporter CSV
+              </Link>
+            </Button>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[620px] text-left text-sm">
               <thead className="border-y text-xs uppercase text-muted-foreground">
