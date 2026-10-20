@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { UsersPanel } from "@/components/admin/UsersPanel";
+import { AdminUserMenu } from "@/components/admin/AdminUserMenu";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
@@ -30,11 +31,14 @@ function UsersPage() {
             Invitations, comptes, rôles et suspensions. Seul un compte root peut agir ici.
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link to="/admin">
-            <ArrowLeft /> Tableau de bord
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link to="/admin">
+              <ArrowLeft /> Tableau de bord
+            </Link>
+          </Button>
+          <AdminUserMenu />
+        </div>
       </header>
 
       <div className="mt-8">

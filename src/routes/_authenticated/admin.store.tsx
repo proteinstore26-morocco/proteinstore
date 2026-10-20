@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -11,7 +11,6 @@ import {
   RefreshCw,
   Pencil,
   Plus,
-  LogOut,
   ArrowUpRight,
   AlertTriangle,
   Lock,
@@ -33,7 +32,6 @@ import {
   partnerEditSchema,
   orderStatusSchema,
 } from "@/lib/admin-rules";
-import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { mad } from "@/lib/pricing";
 import { productImage } from "@/lib/images";
@@ -57,6 +55,8 @@ import {
   Field,
   type AdminOrder,
 } from "@/components/admin/Editors";
+
+import { AdminUserMenu } from "@/components/admin/AdminUserMenu";
 
 export const Route = createFileRoute("/_authenticated/admin/store")({
   head: () => ({
@@ -94,7 +94,6 @@ function Admin() {
   const fetchStaff = useServerFn(listStaff);
   const changeStaff = useServerFn(setStaff);
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const query = useQuery({
     queryKey: ["admin", "store"],
     queryFn: () => fetchData({ data: undefined }),
@@ -121,12 +120,6 @@ function Admin() {
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: ["admin"] });
     await queryClient.invalidateQueries({ queryKey: ["catalog"] });
-  }
-  async function logout() {
-    await queryClient.cancelQueries();
-    queryClient.clear();
-    await supabase.auth.signOut();
-    await navigate({ to: "/auth", replace: true });
   }
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -328,15 +321,7 @@ function Admin() {
               <ArrowUpRight />
             </Link>
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Déconnexion"
-            title="Déconnexion"
-            onClick={logout}
-          >
-            <LogOut />
-          </Button>
+          <AdminUserMenu />
         </div>
       </header>
       <div className="my-8 grid grid-cols-2 gap-4 lg:grid-cols-4">

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { getAdminOrders, getAdminStats } from "@/lib/store.functions";
 import { useAuth } from "@/lib/auth";
+import { AdminUserMenu } from "@/components/admin/AdminUserMenu";
 import { STATUS_LABELS, type OrderStatus } from "@/lib/order-types";
 import { mad } from "@/lib/pricing";
 import { Badge } from "@/components/ui/badge";
@@ -141,6 +142,7 @@ function AdminDashboard() {
               Voir la boutique <ArrowUpRight />
             </Link>
           </Button>
+          <AdminUserMenu />
         </div>
       </header>
 
