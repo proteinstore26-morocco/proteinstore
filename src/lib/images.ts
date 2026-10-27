@@ -12,5 +12,6 @@ export const categoryImages: Record<string, string> = {
 };
 
 export function productImage(p: { image_urls?: string[] | null; category?: { slug: string } | null }) {
-  return p.image_urls?.[0] || categoryImages[p.category?.slug ?? ""] || whey;
+  const first = p.image_urls?.[0];
+  return (first && proxiedImage(first)) || categoryImages[p.category?.slug ?? ""] || whey;
 }
