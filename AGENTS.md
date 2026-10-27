@@ -15,3 +15,7 @@
 - The production target is Node 22 (`nitro` preset `node-server`) behind systemd + Caddy on
   `127.0.0.1:5077`. Do not reintroduce a Cloudflare build.
 - Do not force-push or rewrite published history; keep `main` in a working state.
+- Imported catalogue photos load through the `/api/public/img` same-origin proxy
+  (allowlisted to the importer's approved hosts); storefront code maps absolute
+  http(s) image URLs via `proxiedImage()` in `src/lib/image-proxy.ts` because
+  source shops send `Cross-Origin-Resource-Policy: same-origin`.
