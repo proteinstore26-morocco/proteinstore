@@ -27,6 +27,7 @@ import { Route as AuthenticatedAdminCatalogueRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminImportRouteImport } from './routes/_authenticated/admin.import'
 import { Route as AuthenticatedAdminStoreRouteImport } from './routes/_authenticated/admin.store'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
+import { Route as ApiPublicImgRouteImport } from './routes/api/public/img'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -119,6 +120,11 @@ const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
+const ApiPublicImgRoute = ApiPublicImgRouteImport.update({
+  id: '/api/public/img',
+  path: '/api/public/img',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/admin/import': typeof AuthenticatedAdminImportRoute
   '/admin/store': typeof AuthenticatedAdminStoreRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/api/public/img': typeof ApiPublicImgRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -155,6 +162,7 @@ export interface FileRoutesByTo {
   '/admin/import': typeof AuthenticatedAdminImportRoute
   '/admin/store': typeof AuthenticatedAdminStoreRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/api/public/img': typeof ApiPublicImgRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRoutesById {
@@ -176,6 +184,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/import': typeof AuthenticatedAdminImportRoute
   '/_authenticated/admin/store': typeof AuthenticatedAdminStoreRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/api/public/img': typeof ApiPublicImgRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -197,6 +206,7 @@ export interface FileRouteTypes {
     | '/admin/import'
     | '/admin/store'
     | '/admin/users'
+    | '/api/public/img'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -215,6 +225,7 @@ export interface FileRouteTypes {
     | '/admin/import'
     | '/admin/store'
     | '/admin/users'
+    | '/api/public/img'
     | '/admin'
   id:
     | '__root__'
@@ -235,6 +246,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/import'
     | '/_authenticated/admin/store'
     | '/_authenticated/admin/users'
+    | '/api/public/img'
     | '/_authenticated/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -249,6 +261,7 @@ export interface RootRouteChildren {
   ShopRoute: typeof ShopRoute
   TrackOrderRoute: typeof TrackOrderRoute
   ProductSlugRoute: typeof ProductSlugRoute
+  ApiPublicImgRoute: typeof ApiPublicImgRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -379,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/api/public/img': {
+      id: '/api/public/img'
+      path: '/api/public/img'
+      fullPath: '/api/public/img'
+      preLoaderRoute: typeof ApiPublicImgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -435,6 +455,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShopRoute: ShopRoute,
   TrackOrderRoute: TrackOrderRoute,
   ProductSlugRoute: ProductSlugRoute,
+  ApiPublicImgRoute: ApiPublicImgRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

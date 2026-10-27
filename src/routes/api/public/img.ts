@@ -34,9 +34,8 @@ export const Route = createFileRoute("/api/public/img")({
           },
         });
         // Redirects must not be used to escape the allowlist.
-        if (!new URL(upstream.url).hostname.endsWith("." + "" , 0) && !allowed.some((entry) => isSameOrSubdomain(new URL(upstream.url).hostname, entry.host))) {
-          return DENIED;
-        }
+        const finalHost = new URL(upstream.url).hostname;
+        if (!allowed.some((entry) => isSameOrSubdomain(finalHost, entry.host))) return DENIED;
 
         const type = upstream.headers.get("content-type") ?? "";
         if (!upstream.ok || !type.startsWith("image/")) {
