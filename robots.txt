@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /admin
+Disallow: /account
+Disallow: /checkout
+
+Sitemap: https://proteinestore.pro/sitemap.xml
+Sitemap: https://proteinstore.46.225.2.52.sslip.io/sitemap.xml
