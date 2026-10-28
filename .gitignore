@@ -1,0 +1,13 @@
+# Donnees locales (base SQLite, token admin, logs tunnel)
+data/
+
+# Python
+__pycache__/
+*.pyc
+
+# Outils installes localement (cloudflared, MinGit sont hors du projet)
+tools/
+
+# Divers
+*.log
+Thumbs.db

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProteinStore — Admin</title>
+<link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23a3e635'/><text y='68' x='50' text-anchor='middle' font-size='55' font-family='Arial' font-weight='bold' fill='%2309090b'>PS</text></svg>">
+<style>
+  .admin-wrap { width: min(1100px, 94%); margin-inline: auto; padding: 1.6rem 0 3rem; }
+  .login-box { max-width: 420px; margin: 4rem auto; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 1.8rem; }
+  .login-box input { width: 100%; background: var(--bg-2); border: 1px solid var(--line); color: var(--text); border-radius: 9px; padding: .65rem .8rem; font-size: .95rem; margin: .5rem 0 .8rem; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem; margin: 1.2rem 0; }
+  .stat-card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: .9rem 1rem; }
+  .stat-card .label { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; font-weight: 800; }
+  .stat-card .value { font-size: 1.45rem; font-weight: 900; margin-top: .15rem; }
+  .orders-table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .orders-table th, .orders-table td { text-align: left; padding: .7rem .8rem; border-bottom: 1px solid var(--line); font-size: .9rem; vertical-align: top; }
+  .orders-table th { background: var(--bg-2); color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; }
+  .orders-table tr:hover td { background: rgba(163,230,53,.04); }
+  .status-select { background: var(--bg-2); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: .35rem .5rem; font-weight: 700; }
+  .status-pill { display: inline-block; border-radius: 999px; padding: .12rem .6rem; font-size: .78rem; font-weight: 900; }
+  .st-pending { background: #713f12; color: #fde68a; } .st-confirmed { background: #1e3a8a; color: #bfdbfe; }
+  .st-shipped { background: #4c1d95; color: #ddd6fe; } .st-delivered { background: #14532d; color: #bbf7d0; }
+  .st-cancelled { background: #7f1d1d; color: #fecaca; }
+  .admin-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .filter-row { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1rem 0; }
+  table-scroll { overflow-x: auto; }
+  @media (max-width: 760px) { .orders-table { display: block; overflow-x: auto; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="container topbar-inner">
+    <a class="brand" href="/"><span class="brand-mark">PS</span><span class="brand-text">ProteinStore <span style="color:var(--muted);font-weight:600;font-size:.85em">· Admin</span></span></a>
+    <button id="logout" class="btn btn-ghost" style="padding:.4rem .9rem;margin-left:auto;display:none">Déconnexion</button>
+  </div>
+</header>
+
+<!-- Connexion -->
+<section id="login-view" class="admin-wrap">
+  <div class="login-box">
+    <h3>Espace administrateur</h3>
+    <p class="muted small">Entrez le token admin (affiché au démarrage du serveur ou dans <code>data/admin_token.txt</code>).</p>
+    <input id="token-input" type="password" placeholder="Token admin" autocomplete="off">
+    <p id="login-error" class="form-error"></p>
+    <button id="login-btn" class="btn btn-primary btn-block" style="margin-top:0">Se connecter</button>
+    <a href="/" class="btn btn-ghost btn-block">← Retour à la boutique</a>
+  </div>
+</section>
+
+<!-- Tableau de bord -->
+<section id="dash-view" class="admin-wrap" hidden>
+  <div class="admin-head">
+    <h2 style="margin:0">Tableau de bord</h2>
+    <div style="display:flex;gap:.6rem;align-items:center">
+      <select id="status-filter" class="status-select">
+        <option value="">Tous les statuts</option>
+        <option value="pending">En attente</option>
+        <option value="confirmed">Confirmées</option>
+        <option value="shipped">Expédiées</option>
+        <option value="delivered">Livrées</option>
+        <option value="cancelled">Annulées</option>
+      </select>
+      <button id="refresh" class="btn btn-primary" style="padding:.45rem 1rem">Actualiser</button>
+    </div>
+  </div>
+
+  <div class="stats-grid" id="stats"></div>
+
+  <div style="overflow-x:auto">
+  <table class="orders-table">
+    <thead>
+      <tr>
+        <th>Commande</th><th>Client</th><th>Articles</th><th>Total</th>
+        <th>Statut</th><th>Changer</th><th>WhatsApp</th>
+      </tr>
+    </thead>
+    <tbody id="orders-body"></tbody>
+  </table>
+  </div>
+  <p id="orders-empty" class="empty-note" hidden>Aucune commande pour ce filtre.</p>
+</section>
+
+<script src="/admin.js"></script>
+</body>
+</html>

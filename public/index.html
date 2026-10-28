@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProteinStore® — Nutrition sportive 100% authentique | Kénitra</title>
+<meta name="description" content="Compléments alimentaires authentiques à Kénitra, Maroc. Whey, gainers, créatine, pré-workout. Paiement à la livraison, livraison gratuite dès 500 DH.">
+<link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23a3e635'/><text y='68' x='50' text-anchor='middle' font-size='55' font-family='Arial' font-weight='bold' fill='%2309090b'>PS</text></svg>">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container topbar-inner">
+    <a class="brand" href="#/">
+      <span class="brand-mark">PS</span>
+      <span class="brand-text">ProteinStore<span class="brand-reg">®</span></span>
+    </a>
+    <nav class="nav">
+      <a href="#/" data-nav="boutique">Boutique</a>
+      <a href="#/suivi" data-nav="suivi">Suivi commande</a>
+      <a href="#/contact" data-nav="contact">Contact</a>
+      <a href="/admin" class="nav-admin">Espace admin</a>
+    </nav>
+    <button id="cart-btn" class="cart-btn" aria-label="Panier">
+      🛒 <span>Panier</span> <span id="cart-count" class="badge">0</span>
+    </button>
+  </div>
+</header>
+
+<!-- ===================== VUE BOUTIQUE ===================== -->
+<div id="view-boutique">
+  <section class="hero">
+    <div class="container hero-inner">
+      <p class="hero-kicker">Kenitra · Maroc</p>
+      <h1>THE STANDARD.<br><span>No fakes. No excuses. Just results.</span></h1>
+      <p class="hero-sub">Nutrition sportive 100&nbsp;% authentique. Whey, gainers, créatine, pré-workout — importés et vérifiés.</p>
+      <div class="hero-cta">
+        <a href="#catalogue" class="btn btn-primary">Voir la boutique</a>
+        <a href="#/suivi" class="btn btn-ghost">Suivre ma commande</a>
+      </div>
+      <ul class="hero-badges">
+        <li>✅ Produits authentiques</li>
+        <li>💵 Paiement à la livraison</li>
+        <li>🚚 Livraison gratuite dès 500 DH</li>
+      </ul>
+    </div>
+  </section>
+
+  <main id="catalogue" class="container">
+    <div class="catalog-head">
+      <h2>Nos best-sellers</h2>
+      <input id="search" type="search" placeholder="Rechercher un produit…" aria-label="Rechercher">
+    </div>
+    <div id="categories" class="chips" role="tablist"></div>
+    <div id="grid" class="grid" aria-live="polite"></div>
+  </main>
+
+  <section class="trust container">
+    <div class="trust-card"><span>💪</span><h3>Qualité vérifiée</h3><p>Chaque lot est contrôlé. Scellés d'origine, codes authentiques.</p></div>
+    <div class="trust-card"><span>🚚</span><h3>Livraison rapide</h3><p>24-48 h à Kénitra et Rabat, 48-72 h partout au Maroc.</p></div>
+    <div class="trust-card"><span>💵</span><h3>Paiement à la livraison</h3><p>Payez en espèces à la réception. Zéro risque.</p></div>
+  </section>
+
+  <section id="avis" class="container reviews">
+    <h2>Ils s'entraînent avec nous</h2>
+    <div class="review-row">
+      <blockquote><p>« Produits originaux, livraison en 24 h à Kénitra. Rien à dire. »</p><footer>— Yassine, Kénitra</footer></blockquote>
+      <blockquote><p>« L'ISO 100 est authentique, goût parfait. Service WhatsApp très réactif. »</p><footer>— Salma, Rabat</footer></blockquote>
+      <blockquote><p>« Meilleur prix de la ville sur la créatine Applied. Je recommande. »</p><footer>— Omar, Casablanca</footer></blockquote>
+    </div>
+  </section>
+</div>
+
+<!-- ===================== VUE SUIVI ===================== -->
+<div id="view-suivi" hidden>
+  <main class="container narrow">
+    <h2 class="page-title">Suivi de commande</h2>
+    <p class="muted">Saisissez le numéro reçu lors de votre commande (ex&nbsp;: PS-2026-00001).</p>
+    <form id="track-form" class="track-form">
+      <input id="track-number" type="text" placeholder="PS-2026-00001" required>
+      <button class="btn btn-primary" type="submit">Suivre</button>
+    </form>
+    <div id="track-result"></div>
+  </main>
+</div>
+
+<!-- ===================== VUE CONTACT ===================== -->
+<div id="view-contact" hidden>
+  <main class="container narrow">
+    <h2 class="page-title">Contact</h2>
+    <div class="contact-card">
+      <p>📍 Kénitra, Maroc</p>
+      <p>💬 WhatsApp : <a href="https://wa.me/212776566089" target="_blank" rel="noopener">+212 776 566 089</a></p>
+      <p>🕐 Lun–Sam : 10h–21h</p>
+      <p>💵 Paiement à la livraison partout au Maroc · Livraison gratuite dès 500 DH</p>
+    </div>
+  </main>
+</div>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <div>
+      <span class="brand-mark">PS</span> <strong>ProteinStore®</strong>
+      <p class="muted">Nutrition sportive authentique — Kénitra, Maroc.</p>
+    </div>
+    <nav>
+      <a href="#/">Boutique</a>
+      <a href="#/suivi">Suivi commande</a>
+      <a href="#/contact">Contact</a>
+      <a href="/admin">Admin</a>
+    </nav>
+    <p class="muted">© 2026 ProteinStore — site de démonstration.</p>
+  </div>
+</footer>
+
+<!-- Panier -->
+<div id="cart-overlay" class="overlay" hidden></div>
+<aside id="cart-drawer" class="drawer" aria-label="Panier" hidden>
+  <div class="drawer-head">
+    <h3>Votre panier</h3>
+    <button id="cart-close" class="icon-btn" aria-label="Fermer">✕</button>
+  </div>
+  <div id="cart-items" class="cart-items"></div>
+  <div class="drawer-foot">
+    <div class="total-row"><span>Total</span><strong id="cart-total">0 DH</strong></div>
+    <p class="muted small" id="shipping-hint"></p>
+    <button id="checkout-btn" class="btn btn-primary btn-block">Commander (paiement à la livraison)</button>
+  </div>
+</aside>
+
+<!-- Modal produit -->
+<div id="product-modal" class="modal" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true">
+    <button id="product-close" class="icon-btn modal-close" aria-label="Fermer">✕</button>
+    <div id="product-detail"></div>
+  </div>
+</div>
+
+<!-- Modal commande -->
+<div id="checkout-modal" class="modal" hidden>
+  <div class="modal-box" role="dialog" aria-modal="true">
+    <button id="checkout-close" class="icon-btn modal-close" aria-label="Fermer">✕</button>
+    <h3>Finaliser la commande</h3>
+    <p class="muted small">Paiement à la livraison. Nous vous appelons pour confirmer.</p>
+    <form id="checkout-form">
+      <label>Nom complet<input name="name" type="text" required minlength="3" placeholder="Nom et prénom"></label>
+      <label>Téléphone (WhatsApp)<input name="phone" type="tel" required placeholder="06XXXXXXXX" pattern="(\+212|0)[5-7][0-9]{8}"></label>
+      <label>Ville<input name="city" type="text" required placeholder="Kénitra"></label>
+      <label>Adresse de livraison<textarea name="address" required minlength="5" rows="2" placeholder="Quartier, rue, n°…"></textarea></label>
+      <label>Note (facultatif)<textarea name="note" rows="2" placeholder="Précisions, goûts souhaités…"></textarea></label>
+      <div class="total-row"><span>Total</span><strong id="checkout-total">0 DH</strong></div>
+      <button type="submit" class="btn btn-primary btn-block">Valider la commande</button>
+    </form>
+  </div>
+</div>
+
+<!-- Modal succès -->
+<div id="success-modal" class="modal" hidden>
+  <div class="modal-box success" role="dialog" aria-modal="true">
+    <div class="success-icon">✅</div>
+    <h3>Commande enregistrée !</h3>
+    <p>Votre numéro de commande :</p>
+    <p class="order-number" id="success-number"></p>
+    <p class="muted small">Conservez-le pour suivre votre livraison. Dernière étape : envoyez la confirmation sur WhatsApp.</p>
+    <a id="success-whatsapp" class="btn btn-whatsapp btn-block" target="_blank" rel="noopener">💬 Envoyer la confirmation sur WhatsApp</a>
+    <button id="success-close" class="btn btn-ghost btn-block">Fermer</button>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="/app.js"></script>
+</body>
+</html>
