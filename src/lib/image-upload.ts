@@ -57,3 +57,16 @@ export function isAllowedPartnerLogoUrl(value: string): boolean {
     return false;
   }
 }
+
+/** Category images: external HTTPS or an uploaded `/uploads/categories/...` path. */
+export function isAllowedCategoryImageUrl(value: string): boolean {
+  const url = value.trim();
+  if (url.length === 0 || url.length > 2000) return false;
+  if (/^\/uploads\/categories\/[a-z0-9-]+\.(jpg|jpeg|png|webp)$/i.test(url)) return true;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && !parsed.username && !parsed.password;
+  } catch {
+    return false;
+  }
+}

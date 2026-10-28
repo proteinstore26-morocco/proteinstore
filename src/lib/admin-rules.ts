@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   MAX_PRODUCT_IMAGES,
+  isAllowedCategoryImageUrl,
   isAllowedPartnerLogoUrl,
   isAllowedProductImageUrl,
 } from "./image-upload";
@@ -102,7 +103,7 @@ export const categoryEditSchema = z.object({
     .string()
     .trim()
     .max(2000)
-    .refine(isAllowedPartnerLogoUrl, "URL d'image invalide.")
+    .refine(isAllowedCategoryImageUrl, "URL d'image invalide.")
     .nullable(),
   display_order: z.number().int().min(0),
 });

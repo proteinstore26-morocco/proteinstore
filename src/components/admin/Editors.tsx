@@ -24,6 +24,7 @@ import { statusLabels, orderStatusSchema } from "@/lib/admin-rules";
 import { mad } from "@/lib/pricing";
 import {
   MAX_PRODUCT_IMAGES,
+  isAllowedCategoryImageUrl,
   isAllowedPartnerLogoUrl,
   isAllowedProductImageUrl,
 } from "@/lib/image-upload";
@@ -589,7 +590,7 @@ export function CategoryFields({ category }: { category?: Tables<"categories"> |
 
   function addUrl() {
     const candidate = url.trim();
-    if (!isAllowedPartnerLogoUrl(candidate)) {
+    if (!isAllowedCategoryImageUrl(candidate)) {
       setError("URL invalide : utilisez https://… ou une image uploadée.");
       return;
     }
