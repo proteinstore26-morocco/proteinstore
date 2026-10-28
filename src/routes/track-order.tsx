@@ -5,6 +5,8 @@ import { trackOrder } from "@/lib/orders.functions";
 import { STATUS_LABELS, type PublicOrder } from "@/lib/order-types";
 import { mad } from "@/lib/pricing";
 import { buildTrackingMessage, whatsappUrl } from "@/lib/whatsapp";
+import { STATIC_MODE } from "@/lib/static-mode";
+import { findStaticOrders } from "@/lib/static-orders";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +47,25 @@ function Track() {
   async function lookup(payload: { order_number?: string | undefined; phone?: string | undefined }) {
     setBusy(true);
     setError("");
+    if (STATIC_MODE) {
+      const found = findStaticOrders(payload).map((o) => ({
+        orderNumber: o.orderNumber,
+        status: o.status,
+        paymentStatus: o.paymentStatus,
+        total: o.total,
+        discount: 0,
+        promoCode: null,
+        createdAt: o.createdAt,
+        items: o.items.map((i) => ({ title: i.title, variant: null, quantity: i.quantity, lineTotal: i.lineTotal })),
+        timeline: [{ type: "created", message: "Commande (démo statique Cloudflare)", createdAt: o.createdAt }],
+        invoiceNumber: null,
+      }));
+      setResults(found);
+      setResult(found.length === 1 ? (found[0] ?? null) : null);
+      setSearched(true);
+      setBusy(false);
+      return;
+    }
     try {
       const data = await trackOrder({ data: payload });
       setResults(data.orders);

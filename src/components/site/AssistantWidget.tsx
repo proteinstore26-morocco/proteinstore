@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { X, Send, RefreshCcw } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { assistantReply } from "@/lib/assistant.functions";
+import { STATIC_MODE } from "@/lib/static-mode";
 import { useI18n } from "@/lib/i18n";
 import { whatsappUrl } from "@/lib/whatsapp";
 
@@ -66,6 +67,7 @@ function Avatar({ persona, mood = "idle", size = 40 }: { persona: Persona; mood?
 }
 
 export function AssistantWidget() {
+  if (STATIC_MODE) return null; // l'assistant a besoin du backend (indisponible en statique)
   const { lang } = useI18n();
   const reply = useServerFn(assistantReply);
   const ui = UI[lang] ?? UI.fr;

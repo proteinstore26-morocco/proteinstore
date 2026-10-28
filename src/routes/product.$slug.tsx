@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Minus, Plus, Truck, Banknote } from "lucide-react";
 import { getProduct } from "@/lib/catalog.functions";
 import { catalogQuery, useCatalog, priceOf, type Product } from "@/lib/catalog";
+import { STATIC_MODE } from "@/lib/static-mode";
 import { productImage } from "@/lib/images";
 import { mad } from "@/lib/pricing";
 import { productJsonLd, SITE_URL } from "@/lib/seo";
@@ -12,7 +13,25 @@ import { useI18n } from "@/lib/i18n";
 import { Stars } from "@/components/site/ProductCard";
 import { Button } from "@/components/ui/button";
 
-const productQuery = (slug: string) => queryOptions({ queryKey: ["product", slug], queryFn: () => getProduct({ data: { slug } }) });
+const productQuery = (slug: string) =>
+  queryOptions({
+    queryKey: ["product", slug],
+    queryFn: async () => {
+      if (STATIC_MODE) {
+        const res = await fetch("/catalog-data.json");
+        const data = (await res.json()) as {
+          products: (Product & { description: string | null; flavors: string[] })[];
+          reviews: { id: string; product_id: string | null; rating: number; comment: string; author_name: string; is_verified?: boolean }[];
+        };
+        const product = data.products.find((p) => p.slug === slug) ?? null;
+        return {
+          product,
+          reviews: product ? data.reviews.filter((r) => r.product_id === product.id) : [],
+        };
+      }
+      return getProduct({ data: { slug } });
+    },
+  });
 
 export const Route = createFileRoute("/product/$slug")({
   loader: async ({ context, params }) => {

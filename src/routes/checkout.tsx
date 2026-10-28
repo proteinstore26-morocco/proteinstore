@@ -3,8 +3,10 @@ import { useState } from "react";
 import { BadgePercent, Banknote, MessageCircle, ShieldCheck } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { mad, shippingFor } from "@/lib/pricing";
-import { whatsappUrl } from "@/lib/whatsapp";
+import { buildOrderMessage, waUrlTo, whatsappUrl } from "@/lib/whatsapp";
 import { createOrder, validatePromo } from "@/lib/orders.functions";
+import { STATIC_MODE } from "@/lib/static-mode";
+import { nextStaticOrderNumber, saveStaticOrder } from "@/lib/static-orders";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,6 +86,42 @@ function Checkout() {
     const value = (key: string) => String(form.get(key) ?? "");
 
     try {
+      if (STATIC_MODE) {
+        // Démo statique : commande enregistrée localement + ouverture WhatsApp.
+        const orderNumber = nextStaticOrderNumber();
+        const lines = items.map((i) => ({
+          title: i.title,
+          quantity: i.qty,
+          lineTotal: i.qty * i.unitPrice,
+        }));
+        const total = Math.max(0, subtotal - discount) + shipping;
+        saveStaticOrder({
+          orderNumber,
+          customerName: value("name"),
+          customerPhone: value("phone"),
+          city: value("city"),
+          total,
+          status: "pending",
+          paymentStatus: "unpaid",
+          createdAt: new Date().toISOString(),
+          items: lines,
+        });
+        const message = buildOrderMessage({
+          orderNumber,
+          name: value("name"),
+          phone: value("phone"),
+          city: value("city"),
+          address: value("address"),
+          ...(value("notes") ? { notes: value("notes") } : {}),
+          items: lines.map((l) => ({ title: l.title, qty: l.quantity, unitPrice: Math.round(l.lineTotal / Math.max(1, l.quantity)) })),
+          subtotal,
+          shipping,
+          total,
+        });
+        clear();
+        window.location.assign(waUrlTo(value("phone"), message));
+        return;
+      }
       const result = await createOrder({
         data: {
           customer_name: value("name"),

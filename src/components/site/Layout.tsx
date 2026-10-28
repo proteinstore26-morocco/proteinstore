@@ -17,6 +17,7 @@ import { mad, FREE_SHIPPING_THRESHOLD, shippingFor } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/lib/auth";
+import { STATIC_MODE } from "@/lib/static-mode";
 import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 import { whatsappUrl } from "@/lib/whatsapp";
 
@@ -109,14 +110,16 @@ export function Header() {
               <Link to="/admin">Admin</Link>
             </Button>
           )}
-          <Link
-            to={user ? "/account" : "/auth"}
-            aria-label={user ? "Mon compte" : "Connexion"}
-            title={user ? "Mon compte" : "Connexion"}
-            className="rounded-full p-2 hover:bg-secondary"
-          >
-            <User className="size-5" />
-          </Link>
+          {!STATIC_MODE && (
+            <Link
+              to={user ? "/account" : "/auth"}
+              aria-label={user ? "Mon compte" : "Connexion"}
+              title={user ? "Mon compte" : "Connexion"}
+              className="rounded-full p-2 hover:bg-secondary"
+            >
+              <User className="size-5" />
+            </Link>
+          )}
           <button
             aria-label="Panier"
             onClick={() => setOpen(true)}
