@@ -8,7 +8,19 @@ import sante from "@/assets/cat-sante.jpg";
 import { proxiedImage } from "@/lib/image-proxy";
 
 export const categoryImages: Record<string, string> = {
-  whey, gainers, creatine, "pre-workout": pre, "acides-amines": amino, bruleurs: burn, sante, barres: whey,
+  whey,
+  "whey-proteines": whey,
+  gainers,
+  creatine,
+  "pre-workout": pre,
+  "acides-amines": amino,
+  bcaa: amino,
+  bruleurs: burn,
+  sante,
+  vitamines: sante,
+  barres: whey,
+  "barres-snacks": whey,
+  accessoires: whey,
 };
 
 export function productImage(p: { image_urls?: string[] | null; category?: { slug: string } | null }) {

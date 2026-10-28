@@ -141,7 +141,7 @@ function Home() {
               className="group relative aspect-[4/5] overflow-hidden rounded-xl bg-card"
             >
               <img
-                src={c.image_url || categoryImages[c.slug]}
+                src={c.image_url || categoryImages[c.slug] || categoryImages.whey}
                 alt={c.name}
                 loading="lazy"
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
