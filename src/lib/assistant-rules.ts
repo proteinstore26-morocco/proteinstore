@@ -9,6 +9,10 @@ export type Intent =
   | "medical"
   | "handoff"
   | "greeting"
+  | "partners"
+  | "categories"
+  | "campaign"
+  | "info"
   | "unknown";
 
 const has = (text: string, words: string[]) => words.some((w) => text.includes(w));
@@ -28,6 +32,13 @@ const HANDOFF_WORDS = [
   "custom", "spécifique", "spéciale", "مشكل", "بشري",
 ];
 const GREETING_WORDS = ["bonjour", "bonsoir", "salut", "coucou", "hello", "hi ", "slt", "salam", "سلام", "مرحبا"];
+const PARTNERS_WORDS = [
+  "partenaire", "partenaires", "salle", "salles", "gym", "club", "code ",
+  "code promo", "réduction", "reduction", "remise", "discount", "شريك", "نادي", "خصم",
+];
+const CATEGORY_WORDS = ["catégorie", "categorie", "cATEGORIES", "category", "rayon", "types de", "فئة", "تصنيف"];
+const CAMPAIGN_WORDS = ["promo active", "solde", "soldes", "vente flash", "flash", "promotion", "promotions", "تخفيضات", "عرض"];
+const INFO_WORDS = ["horaire", "horaires", "ouvert", "adresse", "où êtes", "où se trouve", "magasin physique", "hours", "open", "address", "ساعات", "عنوان"];
 
 export function extractOrderNumber(message: string): string | null {
   const ps = message.match(/PS-\d{4}-\d{4,6}/i);
@@ -50,7 +61,11 @@ export function detectIntent(message: string): Intent {
   if (extractOrderNumber(message)) return "order";
   if (has(text, GREETING_WORDS) && message.trim().length < 25) return "greeting";
   if (has(text, ORDER_WORDS)) return "order";
-  if (has(text, STOCK_WORDS)) return "stock";
+  if (has(text, STOCK_WORDS) || has(text, ["prix de", "combien coûte", "combien coute", "prix ?", "le prix"])) return "stock";
+  if (has(text, PARTNERS_WORDS)) return "partners";
+  if (has(text, CAMPAIGN_WORDS)) return "campaign";
+  if (has(text, CATEGORY_WORDS)) return "categories";
+  if (has(text, INFO_WORDS)) return "info";
   if (has(text, DELIVERY_WORDS)) return "delivery";
   if (has(text, PAYMENT_WORDS)) return "payment";
   if (has(text, HANDOFF_WORDS)) return "handoff";

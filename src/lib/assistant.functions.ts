@@ -60,12 +60,12 @@ async function searchProducts(tokens: string[]) {
   const { normalizeText } = await import("./catalogue-csv");
   const { data } = await publicServerClient()
     .from("products")
-    .select("title,slug,price,stock_quantity,brand")
+    .select("title,slug,price,stock_quantity,brand,description")
     .eq("status", "published")
     .limit(300);
   const scored = (data ?? [])
     .map((p) => {
-      const hay = normalizeText(`${p.title} ${p.brand}`);
+      const hay = normalizeText(`${p.title} ${p.brand} ${(p.description as string | null) ?? ""}`);
       const score = tokens.filter((t) => hay.includes(t)).length;
       return { p, score };
     })
@@ -264,6 +264,124 @@ async function buildReply(
       };
     }
 
+    case "partners": {
+      const { publicServerClient } = await import("./supabase-public.server");
+      const { data: partners } = await publicServerClient()
+        .from("partners")
+        .select("name,location,discount_code,discount_percent,is_active")
+        .eq("is_active", true)
+        .order("display_order")
+        .limit(9);
+      const list = (partners ?? [])
+        .map((p) => `• ${p.name} (${p.location}) — code ${p.discount_code} : -${p.discount_percent ?? 10} %`)
+        .join("\n");
+      return {
+        mood: "happy",
+        messages: [
+          tone(
+            say(
+              lang,
+              `Nos salles partenaires à Kénitra et au Maroc :\n${list}\n\nLe code se saisit au checkout, la remise s'applique direct.`,
+              `Our partner gyms in Kénitra and Morocco:\n${list}\n\nEnter the code at checkout, the discount applies instantly.`,
+              `صالاتنا الشريكة:\n${list}\n\nأدخل الكود عند إتمام الطلب ويطبق الخصم مباشرة.`,
+            ),
+            persona,
+            lang,
+          ),
+        ],
+      };
+    }
+
+    case "categories": {
+      const { publicServerClient } = await import("./supabase-public.server");
+      const { data: cats } = await publicServerClient()
+        .from("categories")
+        .select("name")
+        .order("display_order");
+      const list = (cats ?? []).map((c) => `• ${c.name}`).join("\n");
+      return {
+        mood: "idle",
+        messages: [
+          tone(
+            say(
+              lang,
+              `Nos rayons :\n${list}\n\nTout est sur la page Boutique.`,
+              `Our sections:\n${list}\n\nEverything is on the Shop page.`,
+              `أقسامنا:\n${list}\n\nكل شيء في صفحة المتجر.`,
+            ),
+            persona,
+            lang,
+          ),
+        ],
+        suggestions: [say(lang, "Voir la boutique", "Browse the shop", "تصفح المتجر")],
+      };
+    }
+
+    case "campaign": {
+      const { publicServerClient } = await import("./supabase-public.server");
+      const { data: campaigns } = await publicServerClient()
+        .from("campaigns")
+        .select("name,discount_type,discount_value,end_date")
+        .eq("is_active", true)
+        .limit(3);
+      const actives = campaigns ?? [];
+      if (!actives.length) {
+        return {
+          mood: "idle",
+          messages: [
+            tone(
+              say(
+                lang,
+                "Pas de promotion active en ce moment — mais les prix promo produits et les codes salles s'appliquent toujours !",
+                "No active promotion right now — but product sale prices and gym codes always apply!",
+                "لا يوجد عرض حاليا — لكن أسعار المنتجات المخفضة وأكواد الصالات تنطبق دائما!",
+              ),
+              persona,
+              lang,
+            ),
+          ],
+          suggestions: [say(lang, "Voir la boutique", "Browse the shop", "تصفح المتجر")],
+        };
+      }
+      const list = actives
+        .map((c) => `• ${c.name} : -${c.discount_value}${c.discount_type === "percent" ? " %" : " MAD"}`)
+        .join("\n");
+      return {
+        mood: "happy",
+        messages: [
+          tone(
+            say(
+              lang,
+              `Oui, il y a une promo en cours :\n${list}\n\nAppliquée automatiquement dans le panier.`,
+              `Yes, there's an active deal:\n${list}\n\nApplied automatically in the cart.`,
+              `نعم، هناك عرض حالي:\n${list}\n\nيطبق تلقائيا في السلة.`,
+            ),
+            persona,
+            lang,
+          ),
+        ],
+      };
+    }
+
+    case "info": {
+      return {
+        mood: "idle",
+        messages: [
+          tone(
+            say(
+              lang,
+              "PROTEIN STORE® — Kénitra, Maroc. Ouvert lun-sam 10h-21h. Commandes et conseil par WhatsApp Business, livraison 24-72 h partout au Maroc, paiement à la livraison.",
+              "PROTEIN STORE® — Kénitra, Morocco. Open Mon-Sat 10am-9pm. Orders and advice via WhatsApp Business, 24-72 h delivery nationwide, cash on delivery.",
+              "PROTEIN STORE® — القنيطرة، المغرب. مفتوح الاثنين-السبت 10ص-9م. الطلبات والاستشارة عبر واتساب بيزنس، التوصيل 24-72 ساعة، الدفع عند التسليم.",
+            ),
+            persona,
+            lang,
+          ),
+        ],
+        suggestions: [say(lang, "Contacter l'équipe", "Contact the team", "اتصل بالفريق")],
+      };
+    }
+
     case "stock": {
       const tokens = productTokens(message);
       const products = tokens.length ? await searchProducts(tokens) : [];
@@ -283,6 +401,34 @@ async function buildReply(
             ),
           ],
           suggestions: [say(lang, "Contacter l'équipe", "Contact the team", "اتصل بالفريق")],
+        };
+      }
+      if (products.length === 1) {
+        const p = products[0]!;
+        const { publicServerClient } = await import("./supabase-public.server");
+        const { data: full } = await publicServerClient()
+          .from("products")
+          .select("description,flavors")
+          .eq("slug", p.slug)
+          .maybeSingle();
+        const flavors = ((full?.flavors as string[] | null) ?? []).join(", ");
+        return {
+          mood: p.stock > 0 ? "happy" : "sorry",
+          messages: [
+            tone(
+              say(
+                lang,
+                `${p.title} — ${Math.round(p.price)} MAD. ${p.stock > 0 ? `En stock (${p.stock} dispo).` : "Indisponible pour le moment, je peux prévenir l'équipe pour le réassort."}`,
+                `${p.title} — ${Math.round(p.price)} MAD. ${p.stock > 0 ? `In stock (${p.stock} left).` : "Currently unavailable, I can tell the team to restock."}`,
+                `${p.title} — ${Math.round(p.price)} درهم. ${p.stock > 0 ? `متوفر (${p.stock}).` : "غير متوفر حاليا، يمكنني إبلاغ الفريق."}`,
+              ),
+              persona,
+              lang,
+            ),
+            ...(flavors ? [say(lang, `Goûts : ${flavors}`, `Flavors: ${flavors}`, `النكهات: ${flavors}`)] : []),
+          ],
+          products: [p],
+          suggestions: [say(lang, "Voir la boutique", "Browse the shop", "تصفح المتجر")],
         };
       }
       return {
