@@ -78,8 +78,15 @@ export function Header() {
       className={`sticky top-0 z-40 transition-colors duration-300 ${scrolled ? "border-b bg-background/85 backdrop-blur-xl" : "bg-transparent"}`}
     >
       <div className="container-ps flex h-16 items-center justify-between gap-4">
-        <Link to="/" className="headline text-lg md:text-xl">
-          PROTEIN STORE<span className="text-primary">®</span>
+        <Link to="/" className="flex items-center gap-2.5">
+          <img
+            src="/logo.png"
+            alt="Logo PROTEIN STORE®"
+            className="size-10 rounded-full ring-1 ring-white/15"
+          />
+          <span className="headline text-lg md:text-xl">
+            PROTEIN STORE<span className="text-primary">®</span>
+          </span>
         </Link>
         <nav className="hidden items-center gap-7 md:flex">
           {nav.map((n) => (
@@ -262,9 +269,16 @@ export function Footer() {
     <footer className="border-t bg-card">
       <div className="container-ps grid gap-10 py-14 md:grid-cols-4">
         <div>
-          <p className="headline text-xl">
-            PROTEIN STORE<span className="text-primary">®</span>
-          </p>
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/logo.png"
+              alt="Logo PROTEIN STORE®"
+              className="size-9 rounded-full ring-1 ring-white/15"
+            />
+            <p className="headline text-xl">
+              PROTEIN STORE<span className="text-primary">®</span>
+            </p>
+          </div>
           <p className="mt-3 text-sm text-muted-foreground">
             THE STANDARD. No Fakes. No Excuses. Just Results.
           </p>
