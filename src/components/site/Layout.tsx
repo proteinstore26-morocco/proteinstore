@@ -105,7 +105,7 @@ export function Header() {
           <Link to="/shop" aria-label="Rechercher" className="rounded-full p-2 hover:bg-secondary">
             <Search className="size-5" />
           </Link>
-          {isManager && (
+          {(isManager || STATIC_MODE) && (
             <Button asChild variant="ghost" size="sm">
               <Link to="/admin">Admin</Link>
             </Button>
