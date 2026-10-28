@@ -4,6 +4,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
+  detectGuardrail,
   detectIntent,
   extractOrderNumber,
   extractPhone,
@@ -519,15 +520,60 @@ async function buildReply(
           `مرحبا PROTEIN STORE® 👋 طلب محوّل من المساعد ${name}:\n${transcript}`,
         ),
       );
+
+      // Question produit sans mot-clé explicite : recherche dans le catalogue
+      // (ex. « Est-ce que vous avez de la Créatine ? »).
+      const tokens = intent === "handoff" ? [] : productTokens(message);
+      const products = tokens.length ? await searchProducts(tokens) : [];
+      if (products.length) {
+        const inStock = products.filter((p) => p.stock > 0);
+        if (!inStock.length) {
+          return {
+            mood: "sorry",
+            messages: [
+              tone(
+                say(
+                  lang,
+                  `Navré, nous n'avons plus de « ${products[0]!.title} » disponible — dès le réassort, l'équipe vous contacte. Validez l'envoi ci-dessous pour être prévenu.`,
+                  `Sorry, “${products[0]!.title}” is out of stock — as soon as it's back, the team will contact you. Confirm sending below to be notified.`,
+                  `نأسف، « ${products[0]!.title} » غير متوفر حاليا — عند التوفر سيتصل بك الفريق. أكد الإرسال بالأسفل ليتم إشعارك.`,
+                ),
+                persona,
+                lang,
+              ),
+            ],
+            products,
+            whatsappUrl: url,
+            suggestions: [say(lang, "Voir la boutique", "Browse the shop", "تصفح المتجر")],
+          };
+        }
+        return {
+          mood: "happy",
+          messages: [
+            tone(
+              say(lang, "Oui ! Nous avons en stock :", "Yes! We have in stock:", "نعم! متوفر لدينا:") +
+                "\n" +
+                inStock
+                  .map((p) => `✅ ${p.title} — ${Math.round(p.price)} MAD (${p.stock} dispo)`)
+                  .join("\n"),
+              persona,
+              lang,
+            ),
+          ],
+          products: inStock,
+          suggestions: [say(lang, "Voir la boutique", "Browse the shop", "تصفح المتجر")],
+        };
+      }
+
       return {
         mood: "call",
         messages: [
           tone(
             say(
               lang,
-              "Je note tout et je transmets à l'équipe sur WhatsApp Business — cliquez sur le bouton pour confirmer l'envoi, ils vous répondent rapidement.",
-              "I've noted everything and I'm passing it to the team on WhatsApp Business — tap the button to confirm sending, they'll get back to you quickly.",
-              "سجلّت كل شيء وأحوّله للفريق على واتساب بيزنس — اضغط الزر لتأكيد الإرسال وسيجيبونك بسرعة.",
+              "Bonne question ! Je n'ai pas cette réponse dans ma base — le gérant vous rappellera personnellement. Cliquez sur le bouton pour confirmer l'envoi au gérant (réponse rapide, généralement le jour même).",
+              "Good question! I don't have that answer in my database — the manager will call you back personally. Tap the button to confirm sending to the manager (fast reply, usually same day).",
+              "سؤال جيد! ليست لدي هذه الإجابة في قاعدتي — سيتصل بك المدير شخصيا. اضغط الزر لتأكيد الإرسال للمدير (رد سريع، عادة في نفس اليوم).",
             ),
             persona,
             lang,
@@ -560,5 +606,26 @@ export const assistantReply = createServerFn({ method: "POST" })
       return limited;
     }
     const intent = detectIntent(data.message);
+
+    // Garde-fou : hors-sujet, injures ou tentative de détournement
+    if (intent === "unknown" && detectGuardrail(data.message)) {
+      return {
+        mood: "sorry",
+        messages: [
+          tone(
+            say(
+              data.lang,
+              "😊 Je reste concentré sur la boutique : commandes, produits, stocks, livraison et codes partenaires. Pour tout le reste, l'équipe vous répond sur WhatsApp Business.",
+              "😊 I stay focused on the shop: orders, products, stock, delivery and partner codes. For anything else, the team will answer on WhatsApp Business.",
+              "😊 أبقى مركزا على المتجر: الطلبات، المنتجات، المخزون، التوصيل وأكواد الشركاء. لأي شيء آخر، يجيبك الفريق على واتساب بيزنس.",
+            ),
+            data.persona,
+            data.lang,
+          ),
+        ],
+        suggestions: [say(data.lang, "Voir la boutique", "Browse the shop", "تصفح المتجر")],
+      };
+    }
+
     return buildReply(intent, data.message, data.persona, data.lang, data.history);
   });

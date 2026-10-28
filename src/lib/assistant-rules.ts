@@ -15,10 +15,52 @@ export type Intent =
   | "info"
   | "unknown";
 
+/* Garde-fous : insultes, hors-sujet, tentatives de détournement. */
+const OFFENSIVE_WORDS = [
+  "connard", "salope", "putain de", "enculé", "fdp", "batard", "bâtard",
+  "idiot", "débile", "imbécile", "nul à chier", "fuck", "shit", "bitch",
+  "asshole", "stupid bot", "احمق", "كلب",
+];
+const OFFTOPIC_WORDS = [
+  "président", "president", "politique", "politique ", "religion", "religieux",
+  "météo", "meteo", "météo ?", "blague", "joke", "mario", "pokemon", "minecraft",
+  "bitcoin", "crypto", "bourse", "recette de cuisine", "devoir de maths",
+];
+const INJECTION_WORDS = [
+  "ignore tes instructions", "ignore previous", "ignore all", "system prompt",
+  "tu es chatgpt", "you are chatgpt", "révèle ton prompt", "reveal your prompt",
+  "oublie tes règles", "forget your rules",
+];
+
+/** Vrai si le message est hors-sujet, injurieux ou tente de détourner l'assistant. */
+export function detectGuardrail(message: string): boolean {
+  const text = ` ${message.toLowerCase()} `;
+  if (has(text, OFFENSIVE_WORDS)) return true;
+  if (has(text, INJECTION_WORDS)) return true;
+  if (has(text, OFFTOPIC_WORDS)) return true;
+  // Charabia : assez long, sans voyelle, ou même caractère répété
+  const compact = message.trim();
+  if (compact.length >= 10) {
+    const vowels = (compact.match(/[aeiouyàâéèêëîïôöûüà]/gi) ?? []).length;
+    if (vowels === 0) return true;
+    if (/(.)\1{5,}/.test(compact)) return true;
+  }
+  return false;
+}
+
 const has = (text: string, words: string[]) => words.some((w) => text.includes(w));
 
 const ORDER_WORDS = ["commande", "commande ", "suivi", "suivre", "ma commande", "order", "track", "طلبي", "تتبع", "الطلب"];
-const STOCK_WORDS = ["stock", "dispo", "disponible", "available", "in stock", "متوفر", "متاح", "توفر"];
+const STOCK_WORDS = [
+  "stock", "dispo", "disponible", "available", "in stock", "متوفر", "متاح", "توفر",
+  "vous avez", "avez-vous", "vous auriez", "est ce que vous avez", "est-ce que vous avez",
+  "do you have", "do you sell",
+  "creatine", "créatine", "whey", "protéine", "protein", "isolate", "isot",
+  "gainer", "mass gainer", "bcaa", "eaa", "omega", "oméga", "zinc", "magnésium",
+  "magnesium", "vitamine", "multivit", "shaker", "barre protéinée", "pré-workout",
+  "pre-workout", "brûleur", "bruleur", "carnitine", "collagène", "collagen",
+  "ashwagandha", "berberine", "mélatonine", "melatonin", "hydroxycut",
+];
 const DELIVERY_WORDS = ["livraison", "livrer", "délai", "delai", "expédition", "expedie", "shipping", "delivery", "توصيل"];
 const PAYMENT_WORDS = ["paiement", "payement", "payer", "cash", "cod", "espèce", "espèces", "دفع"];
 const MEDICAL_WORDS = [
