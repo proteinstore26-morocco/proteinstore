@@ -24,7 +24,10 @@ const schema = z.object({
     .optional(),
 });
 
+type Mood = "wave" | "happy" | "sorry" | "thinking" | "call" | "idle";
+
 type Reply = {
+  mood: Mood;
   messages: string[];
   products?: { title: string; slug: string; price: number; stock: number }[];
   whatsappUrl?: string | null;
@@ -97,6 +100,7 @@ async function buildReply(
   switch (intent) {
     case "greeting": {
       return {
+        mood: "wave",
         messages: [
           tone(
             say(
@@ -120,6 +124,7 @@ async function buildReply(
 
     case "medical": {
       return {
+        mood: "sorry",
         messages: [
           say(
             lang,
@@ -149,6 +154,7 @@ async function buildReply(
         const order = store.tracking(number, phone);
         if (!order) {
           return {
+            mood: "sorry",
             messages: [
               tone(
                 say(
@@ -171,6 +177,7 @@ async function buildReply(
               ? `الطلب ${order.orderNumber} : ${order.status}`
               : `votre commande ${order.orderNumber} est ${STATUS_FR[order.status] ?? order.status}`;
         return {
+          mood: "happy",
           messages: [
             tone(
               say(
@@ -191,6 +198,7 @@ async function buildReply(
         const orders = store.listByPhone(phone);
         if (!orders.length) {
           return {
+            mood: "sorry",
             messages: [
               tone(
                 say(
@@ -209,6 +217,7 @@ async function buildReply(
           .map((o) => `• ${o.orderNumber} — ${o.status} — ${Math.round(o.total)} MAD`)
           .join("\n");
         return {
+          mood: "happy",
           messages: [
             tone(
               say(lang, `J'ai trouvé ${orders.length} commande(s) :`, `Found ${orders.length} order(s):`, `وجدت ${orders.length} طلب(ات):`) + "\n" + list,
@@ -222,6 +231,7 @@ async function buildReply(
 
       if (number) {
         return {
+          mood: "thinking",
           messages: [
             tone(
               say(
@@ -238,6 +248,7 @@ async function buildReply(
       }
 
       return {
+        mood: "wave",
         messages: [
           tone(
             say(
@@ -258,6 +269,7 @@ async function buildReply(
       const products = tokens.length ? await searchProducts(tokens) : [];
       if (!products.length) {
         return {
+          mood: "thinking",
           messages: [
             tone(
               say(
@@ -274,6 +286,7 @@ async function buildReply(
         };
       }
       return {
+        mood: "happy",
         messages: [
           tone(
             say(
@@ -313,6 +326,7 @@ async function buildReply(
 
     case "delivery": {
       return {
+        mood: "idle",
         messages: [
           tone(
             say(
@@ -331,6 +345,7 @@ async function buildReply(
 
     case "payment": {
       return {
+        mood: "idle",
         messages: [
           tone(
             say(
@@ -359,6 +374,7 @@ async function buildReply(
         ),
       );
       return {
+        mood: "call",
         messages: [
           tone(
             say(
@@ -383,7 +399,8 @@ export const assistantReply = createServerFn({ method: "POST" })
     const { takeToken } = await import("./rate-limit");
     const { clientKey } = await import("./rate-limit.server");
     if (!takeToken(`assistant:${clientKey()}`, 40, 10 * 60_000).ok) {
-      return {
+      const limited: Reply = {
+        mood: "sorry",
         messages: [
           say(
             data.lang,
@@ -394,6 +411,7 @@ export const assistantReply = createServerFn({ method: "POST" })
         ],
         suggestions: [],
       };
+      return limited;
     }
     const intent = detectIntent(data.message);
     return buildReply(intent, data.message, data.persona, data.lang, data.history);
