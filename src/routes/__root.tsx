@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { CartProvider } from "@/lib/cart";
 import { I18nProvider } from "@/lib/i18n";
 import { AnnouncementBar, Header, Footer, CartDrawer, WhatsAppFab } from "@/components/site/Layout";
+import { AssistantWidget } from "@/components/site/AssistantWidget";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -128,6 +129,7 @@ function RootComponent() {
           <Outlet />
           <Footer />
           <CartDrawer />
+          <AssistantWidget />
           <WhatsAppFab />
           <Toaster />
         </CartProvider>
