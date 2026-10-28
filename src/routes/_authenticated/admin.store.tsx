@@ -182,6 +182,7 @@ function Admin() {
                 "instagram_url",
               ].map((k) => [k, text(f, k)]),
             ),
+            discount_percent: Number(f.get("discount_percent") ?? 10),
             logo_url: text(f, "logo_url") === "" ? null : text(f, "logo_url"),
             is_active: f.get("is_active") === "on",
             display_order: Number(f.get("display_order")),

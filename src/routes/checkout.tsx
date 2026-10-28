@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Banknote, MessageCircle, ShieldCheck } from "lucide-react";
+import { BadgePercent, Banknote, MessageCircle, ShieldCheck } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { mad, shippingFor } from "@/lib/pricing";
 import { whatsappUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
-import { createOrder } from "@/lib/orders.functions";
+import { createOrder, validatePromo } from "@/lib/orders.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,7 +34,34 @@ function Checkout() {
   const { items, subtotal, clear } = useCart();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const shipping = shippingFor(subtotal);
+  const [city, setCity] = useState("Kénitra");
+  const shipping = shippingFor(subtotal, city);
+  const [promo, setPromo] = useState("");
+  const [promoBusy, setPromoBusy] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; label: string; percent: number } | null>(null);
+  const [promoMsg, setPromoMsg] = useState("");
+  const discount = appliedPromo ? Math.round(subtotal * (appliedPromo.percent / 100)) : 0;
+  const total = Math.max(0, subtotal - discount) + shipping;
+
+  async function applyPromo() {
+    const code = promo.trim();
+    if (code.length < 3) return;
+    setPromoBusy(true);
+    setPromoMsg("");
+    try {
+      const result = await validatePromo({ data: { code } });
+      if (result.ok) {
+        setAppliedPromo({ code: result.code, label: result.label, percent: result.percent });
+        setPromoMsg(`✓ ${result.label} appliqué`);
+      } else {
+        setAppliedPromo(null);
+        setPromoMsg(result.error ?? "Code invalide.");
+      }
+    } catch {
+      setPromoMsg("Code promo momentanément indisponible.");
+    }
+    setPromoBusy(false);
+  }
 
   if (!items.length) {
     return (
@@ -63,6 +90,7 @@ function Checkout() {
           city: value("city"),
           address: value("address"),
           notes: value("notes"),
+          ...(appliedPromo ? { promo_code: appliedPromo.code } : {}),
           items: items.map((item) => ({
             slug: item.slug,
             qty: item.qty,
@@ -132,10 +160,14 @@ function Checkout() {
               id="city"
               name="city"
               required
-              defaultValue="Kénitra"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
               maxLength={80}
               autoComplete="address-level2"
             />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Livraison Kénitra 20 MAD · autres villes 30 MAD · gratuite dès 500 MAD.
+            </p>
           </div>
           <div>
             <Label htmlFor="address">Adresse *</Label>
@@ -183,11 +215,38 @@ function Checkout() {
               </a>
             </div>
           )}
+          <div className="rounded-lg border border-border bg-card p-4">
+            <Label htmlFor="promo" className="flex items-center gap-2">
+              <BadgePercent className="size-4 text-primary" /> Code promo salle partenaire
+            </Label>
+            <div className="mt-2 flex gap-2">
+              <Input
+                id="promo"
+                name="promo"
+                value={promo}
+                onChange={(e) => setPromo(e.target.value.toUpperCase())}
+                placeholder="Ex. PSPOWER10"
+                maxLength={50}
+                className="font-mono"
+              />
+              <Button type="button" variant="outline" onClick={applyPromo} disabled={promoBusy}>
+                {promoBusy ? "…" : "Appliquer"}
+              </Button>
+            </div>
+            {promoMsg && (
+              <p className={`mt-2 text-sm ${appliedPromo ? "text-success" : "text-muted-foreground"}`}>
+                {promoMsg}
+              </p>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              Membres des salles partenaires : votre code club s'applique directement.
+            </p>
+          </div>
           <Button type="submit" size="lg" className="w-full" disabled={busy}>
             <MessageCircle className="mr-2 size-5" />
             {busy
               ? "Enregistrement de la commande…"
-              : `Commander sur WhatsApp · ${mad(subtotal + shipping)}`}
+              : `Commander sur WhatsApp · ${mad(total)}`}
           </Button>
           <p className="text-center text-xs text-muted-foreground">
             Numéro de la boutique : <span className="font-mono">{WHATSAPP_DISPLAY}</span>
@@ -215,13 +274,19 @@ function Checkout() {
               <span>Sous-total</span>
               <span>{mad(subtotal)}</span>
             </p>
+            {appliedPromo && (
+              <p className="flex justify-between text-success">
+                <span>{appliedPromo.label}</span>
+                <span>−{mad(discount)}</span>
+              </p>
+            )}
             <p className="flex justify-between">
               <span>Livraison</span>
               <span>{shipping ? mad(shipping) : "Gratuite"}</span>
             </p>
             <p className="flex justify-between pt-2 text-lg font-bold">
               <span>Total</span>
-              <span>{mad(subtotal + shipping)}</span>
+              <span>{mad(total)}</span>
             </p>
           </div>
           <p className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">

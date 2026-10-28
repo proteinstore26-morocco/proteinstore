@@ -20,6 +20,7 @@ import { Route as ShopRouteImport } from './routes/shop'
 import { Route as TrackOrderRouteImport } from './routes/track-order'
 import { Route as AuthenticatedAccountRouteImport } from './routes/_authenticated/account'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthConfirmRouteImport } from './routes/auth.confirm'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
 import { Route as ProductSlugRouteImport } from './routes/product.$slug'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
@@ -83,6 +84,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthConfirmRoute = AuthConfirmRouteImport.update({
+  id: '/confirm',
+  path: '/confirm',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthResetRoute = AuthResetRouteImport.update({
   id: '/reset',
   path: '/reset',
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/track-order': typeof TrackOrderRoute
   '/account': typeof AuthenticatedAccountRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/catalogue': typeof AuthenticatedAdminCatalogueRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByTo {
   '/shop': typeof ShopRoute
   '/track-order': typeof TrackOrderRoute
   '/account': typeof AuthenticatedAccountRoute
+  '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
   '/product/$slug': typeof ProductSlugRoute
   '/admin/catalogue': typeof AuthenticatedAdminCatalogueRoute
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/track-order': typeof TrackOrderRoute
   '/_authenticated/account': typeof AuthenticatedAccountRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/auth/confirm': typeof AuthConfirmRoute
   '/auth/reset': typeof AuthResetRoute
   '/product/$slug': typeof ProductSlugRoute
   '/_authenticated/admin/catalogue': typeof AuthenticatedAdminCatalogueRoute
@@ -200,6 +209,7 @@ export interface FileRouteTypes {
     | '/track-order'
     | '/account'
     | '/admin'
+    | '/auth/confirm'
     | '/auth/reset'
     | '/product/$slug'
     | '/admin/catalogue'
@@ -219,6 +229,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/track-order'
     | '/account'
+    | '/auth/confirm'
     | '/auth/reset'
     | '/product/$slug'
     | '/admin/catalogue'
@@ -240,6 +251,7 @@ export interface FileRouteTypes {
     | '/track-order'
     | '/_authenticated/account'
     | '/_authenticated/admin'
+    | '/auth/confirm'
     | '/auth/reset'
     | '/product/$slug'
     | '/_authenticated/admin/catalogue'
@@ -343,6 +355,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/auth/confirm': {
+      id: '/auth/confirm'
+      path: '/confirm'
+      fullPath: '/auth/confirm'
+      preLoaderRoute: typeof AuthConfirmRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/auth/reset': {
       id: '/auth/reset'
       path: '/reset'
@@ -435,10 +454,12 @@ const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
 interface AuthRouteChildren {
+  AuthConfirmRoute: typeof AuthConfirmRoute
   AuthResetRoute: typeof AuthResetRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
+  AuthConfirmRoute: AuthConfirmRoute,
   AuthResetRoute: AuthResetRoute,
 }
 

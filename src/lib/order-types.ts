@@ -53,6 +53,9 @@ export type Order = {
   subtotal: number;
   shipping: number;
   total: number;
+  discount: number;
+  promoCode: string | null;
+  promoLabel: string | null;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
   createdAt: string;
@@ -110,6 +113,8 @@ export type PublicOrder = {
   status: OrderStatus;
   paymentStatus: PaymentStatus;
   total: number;
+  discount: number;
+  promoCode: string | null;
   createdAt: string;
   items: { title: string; variant: string | null; quantity: number; lineTotal: number }[];
   timeline: { type: string; message: string; createdAt: string }[];

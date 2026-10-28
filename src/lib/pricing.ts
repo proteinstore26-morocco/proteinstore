@@ -1,4 +1,5 @@
 export const SHIPPING_COST = 30;
+export const SHIPPING_KENITRA = 20;
 export const FREE_SHIPPING_THRESHOLD = 500;
 
 export type PricedProduct = { id: string; price: number; sale_price: number | null; category_id: string | null };
@@ -29,8 +30,11 @@ export function unitPrice(p: PricedProduct, campaigns: Campaign[], now = new Dat
   return { price: final, compareAt: final < p.price ? p.price : null, percentOff: final < p.price ? Math.round((1 - final / p.price) * 100) : 0 };
 }
 
-export function shippingFor(subtotal: number) {
-  return subtotal >= FREE_SHIPPING_THRESHOLD || subtotal === 0 ? 0 : SHIPPING_COST;
+/** Livraison : gratuite dès 500 MAD, 20 MAD à Kénitra, 30 MAD ailleurs. */
+export function shippingFor(subtotal: number, city?: string | null) {
+  if (subtotal >= FREE_SHIPPING_THRESHOLD || subtotal === 0) return 0;
+  const c = (city ?? "").trim().toLowerCase();
+  return c === "kénitra" || c === "kenitra" ? SHIPPING_KENITRA : SHIPPING_COST;
 }
 
 export const mad = (n: number) => `${n.toLocaleString("fr-FR")} MAD`;

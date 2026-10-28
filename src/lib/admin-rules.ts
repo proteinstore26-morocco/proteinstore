@@ -61,6 +61,7 @@ export const partnerEditSchema = z.object({
   address: z.string().trim().max(500),
   description: z.string().trim().max(3000),
   discount_code: z.string().trim().max(50),
+  discount_percent: z.number().int().min(0).max(90).optional(),
   website_url: z
     .string()
     .url()

@@ -93,7 +93,11 @@ export const savePartnerAdmin = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => partnerEditSchema.parse(d))
   .handler(async ({ context, data }) => {
     await authorize(context);
-    const { id, ...values } = data;
+    const { id, discount_percent, ...rest } = data;
+    const values = {
+      ...rest,
+      ...(discount_percent === undefined ? {} : { discount_percent }),
+    };
     const result = id
       ? await context.supabase.from("partners").update(values).eq("id", id).select("id").single()
       : await context.supabase.from("partners").insert(values).select("id").single();

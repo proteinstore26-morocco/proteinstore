@@ -138,10 +138,13 @@ export type Database = {
           customer_email: string | null
           customer_name: string
           customer_phone: string
+          discount: number
           id: string
           notes: string | null
           order_number: string
           payment_method: string
+          promo_code: string | null
+          promo_label: string | null
           shipping_address: Json
           shipping_cost: number
           status: Database["public"]["Enums"]["order_status"]
@@ -156,10 +159,13 @@ export type Database = {
           customer_email?: string | null
           customer_name: string
           customer_phone: string
+          discount?: number
           id?: string
           notes?: string | null
           order_number: string
           payment_method?: string
+          promo_code?: string | null
+          promo_label?: string | null
           shipping_address: Json
           shipping_cost: number
           status?: Database["public"]["Enums"]["order_status"]
@@ -174,10 +180,13 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string
+          discount?: number
           id?: string
           notes?: string | null
           order_number?: string
           payment_method?: string
+          promo_code?: string | null
+          promo_label?: string | null
           shipping_address?: Json
           shipping_cost?: number
           status?: Database["public"]["Enums"]["order_status"]
@@ -194,6 +203,7 @@ export type Database = {
           created_at: string
           description: string | null
           discount_code: string | null
+          discount_percent: number
           display_order: number
           id: string
           instagram_url: string | null
@@ -208,6 +218,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           discount_code?: string | null
+          discount_percent?: number
           display_order?: number
           id?: string
           instagram_url?: string | null
@@ -222,6 +233,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           discount_code?: string | null
+          discount_percent?: number
           display_order?: number
           id?: string
           instagram_url?: string | null

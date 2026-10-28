@@ -4,7 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { samePhone } from "./phone";
+import { normalizeMoroccanPhone, samePhone } from "./phone";
 import type {
   CustomerDetail,
   CustomerSummary,
@@ -66,6 +66,9 @@ function mapOrder(row: Row): Order {
     total: asNumber(row["total"]),
     status: asString(row["status"], "pending") as OrderStatus,
     paymentStatus: asString(row["payment_status"], "unpaid") as PaymentStatus,
+    discount: asNumber(row["discount"], 0),
+    promoCode: asNullableString(row["promo_code"]),
+    promoLabel: asNullableString(row["promo_label"]),
     createdAt: asString(row["created_at"]),
     updatedAt: asString(row["updated_at"]),
   };
@@ -169,6 +172,9 @@ export type CreateOrderInput = {
   subtotal: number;
   shipping: number;
   total: number;
+  promoCode?: string | null;
+  promoLabel?: string | null;
+  discount?: number;
   items: {
     productSlug: string;
     productTitle: string;
@@ -312,6 +318,16 @@ export class OrderStore {
         created_at TEXT NOT NULL
       );
     `);
+    // Colonnes promo ajoutées après coup — idempotent (SQLite n'a pas d'IF NOT EXISTS sur ALTER).
+    const orderCols = (this.db.prepare("PRAGMA table_info(orders)").all() as Row[]).map((r) =>
+      asString(r["name"]),
+    );
+    if (!orderCols.includes("discount"))
+      this.db.exec("ALTER TABLE orders ADD COLUMN discount INTEGER NOT NULL DEFAULT 0");
+    if (!orderCols.includes("promo_code"))
+      this.db.exec("ALTER TABLE orders ADD COLUMN promo_code TEXT");
+    if (!orderCols.includes("promo_label"))
+      this.db.exec("ALTER TABLE orders ADD COLUMN promo_label TEXT");
   }
 
   private nextSequence(name: string): number {
@@ -338,8 +354,8 @@ export class OrderStore {
         .prepare(
           `INSERT INTO orders (id, order_number, customer_name, customer_phone, customer_phone_norm,
             customer_email, city, address, notes, subtotal, shipping, total, status, payment_status,
-            created_at, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            discount, promo_code, promo_label, created_at, updated_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         )
         .run(
           id,
@@ -356,6 +372,9 @@ export class OrderStore {
           input.total,
           "pending",
           "unpaid",
+          input.discount ?? 0,
+          input.promoCode ?? null,
+          input.promoLabel ?? null,
           at,
           at,
         );
@@ -446,12 +465,53 @@ export class OrderStore {
   tracking(orderNumber: string, phone: string): PublicOrder | null {
     const order = this.findByNumber(orderNumber);
     if (!order || !samePhone(order.customerPhoneNorm, phone)) return null;
+    return this.toPublic(order);
+  }
+
+  /** Commandes d'un téléphone (recherche par téléphone seul), plus récentes d'abord. */
+  listByPhone(phone: string): PublicOrder[] {
+    const norm = normalizeMoroccanPhone(phone);
+    if (!norm) return [];
+    const rows = this.db
+      .prepare("SELECT id FROM orders WHERE customer_phone_norm = ? ORDER BY created_at DESC LIMIT 20")
+      .all(norm) as Row[];
+    const out: PublicOrder[] = [];
+    for (const row of rows) {
+      const order = this.getOrder(asString(row["id"]));
+      if (order) out.push(this.toPublic(order));
+    }
+    return out;
+  }
+
+  /** Encaissement COD manuel (paiement à la livraison). */
+  setPayment(id: string, payment: PaymentStatus, actor: string): OrderDetail {
+    if (!PAYMENT_STATUSES.includes(payment)) throw new Error("Statut de paiement invalide.");
+    const before = this.getOrder(id);
+    if (!before) throw new Error("Commande introuvable.");
+    if (before.paymentStatus === payment) return before;
+    const at = now();
+    this.db
+      .prepare("UPDATE orders SET payment_status = ?, updated_at = ? WHERE id = ?")
+      .run(payment, at, id);
+    this.insertEvent(
+      id,
+      "payment",
+      payment === "paid" ? "Paiement COD encaissé" : `Paiement : ${before.paymentStatus} → ${payment}`,
+      actor,
+      at,
+    );
+    return this.getOrder(id) ?? before;
+  }
+
+  private toPublic(order: OrderDetail): PublicOrder {
     return {
       orderNumber: order.orderNumber,
       status: order.status,
       paymentStatus: order.paymentStatus,
       total: order.total,
       createdAt: order.createdAt,
+      discount: order.discount,
+      promoCode: order.promoCode,
       items: order.items.map((item) => ({
         title: item.productTitle,
         variant: item.variant,

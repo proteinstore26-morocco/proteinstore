@@ -7,6 +7,7 @@ import { mad } from "@/lib/pricing";
 import { buildTrackingMessage, whatsappUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/track-order")({
   head: () => ({
@@ -34,23 +35,18 @@ const STEPS = [
 
 function Track() {
   const [result, setResult] = useState<PublicOrder | null>(null);
+  const [results, setResults] = useState<PublicOrder[] | null>(null);
   const [searched, setSearched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function lookup(payload: { order_number?: string | undefined; phone?: string | undefined }) {
     setBusy(true);
     setError("");
-    const form = new FormData(event.currentTarget);
     try {
-      const order = await trackOrder({
-        data: {
-          order_number: String(form.get("n") ?? ""),
-          phone: String(form.get("p") ?? ""),
-        },
-      });
-      setResult(order);
+      const data = await trackOrder({ data: payload });
+      setResults(data.orders);
+      setResult(data.orders.length === 1 ? (data.orders[0] ?? null) : null);
       setSearched(true);
     } catch (lookupError) {
       console.error("[track] lookup failed", lookupError);
@@ -60,6 +56,17 @@ function Track() {
     setBusy(false);
   }
 
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const n = String(form.get("n") ?? "").trim();
+    const p = String(form.get("p") ?? "").trim();
+    await lookup({
+      ...(n ? { order_number: n } : {}),
+      ...(p ? { phone: p } : {}),
+    });
+  }
+
   const stepIndex = result ? STEPS.findIndex((step) => step.status === result.status) : -1;
   const cancelled = result?.status === "cancelled";
 
@@ -67,21 +74,19 @@ function Track() {
     <main className="container-ps section-ps max-w-3xl">
       <h1 className="headline text-5xl">Suivi de commande</h1>
       <p className="mt-4 text-muted-foreground">
-        Entrez votre numéro de commande (reçu sur WhatsApp) et le téléphone utilisé. Le suivi est
-        mis à jour par la boutique à chaque étape.
+        Entrez votre numéro de commande et votre téléphone — ou seulement votre téléphone pour
+        retrouver toutes vos commandes. Le suivi est mis à jour par la boutique à chaque étape.
       </p>
       <form onSubmit={submit} className="mt-8 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
         <Input
           name="n"
           placeholder="N° de commande (PS-…)"
-          required
           maxLength={40}
           aria-label="Numéro de commande"
         />
         <Input
           name="p"
-          placeholder="Téléphone"
-          required
+          placeholder="Téléphone utilisé"
           maxLength={30}
           aria-label="Téléphone"
           inputMode="tel"
@@ -98,7 +103,40 @@ function Track() {
         </p>
       )}
 
-      {searched && !result && (
+      {searched && !result && (results?.length ?? 0) > 1 && (
+        <div className="mt-8 space-y-3">
+          <p className="text-sm text-muted-foreground">
+            {results!.length} commandes trouvées pour ce téléphone :
+          </p>
+          {results!.map((order) => {
+            const idx = STEPS.findIndex((step) => step.status === order.status);
+            return (
+              <button
+                key={order.orderNumber}
+                onClick={() => {
+                  setResult(order);
+                  setResults(null);
+                }}
+                className="flex w-full flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-4 text-left hover:border-primary/50"
+              >
+                <span className="font-mono text-sm">{order.orderNumber}</span>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(order.createdAt).toLocaleDateString("fr-MA")}
+                </span>
+                <Badge variant="outline">{STATUS_LABELS[order.status]}</Badge>
+                <span className="font-mono">{mad(order.total)}</span>
+                <span className="text-xs text-muted-foreground">
+                  {order.status === "cancelled"
+                    ? "—"
+                    : `${Math.max(idx + 1, 1)}/4 étapes`}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {searched && !result && (results?.length ?? 0) <= 1 && (
         <div className="mt-8 rounded-xl border border-border bg-card p-6">
           <div className="flex items-start gap-3">
             <XCircle className="mt-0.5 size-5 shrink-0 text-destructive" />
@@ -180,9 +218,17 @@ function Track() {
                 </li>
               ))}
             </ul>
-            <div className="mt-4 flex justify-between border-t border-border pt-4 font-bold">
-              <span>Total</span>
-              <span className="font-mono">{mad(result.total)}</span>
+            <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm">
+              {result.discount > 0 && (
+                <p className="flex justify-between text-success">
+                  <span>Code promo {result.promoCode}</span>
+                  <span>−{mad(result.discount)}</span>
+                </p>
+              )}
+              <p className="flex justify-between text-base font-bold">
+                <span>Total</span>
+                <span className="font-mono">{mad(result.total)}</span>
+              </p>
             </div>
             {result.invoiceNumber && (
               <p className="mt-2 text-xs text-muted-foreground">

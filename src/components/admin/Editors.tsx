@@ -524,6 +524,17 @@ export function PartnerFields({ partner }: { partner?: Tables<"partners"> | unde
       <Field label="Code partenaire">
         <Input name="discount_code" defaultValue={partner?.discount_code ?? ""} />
       </Field>
+      <Field label="Remise partenaire (%)">
+        <Input
+          type="number"
+          min={0}
+          max={90}
+          step={1}
+          name="discount_percent"
+          defaultValue={partner?.discount_percent ?? 10}
+          required
+        />
+      </Field>
       <Field label="Ordre d’affichage">
         <Input
           type="number"
