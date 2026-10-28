@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { syncMyAccount } from "@/lib/account.functions";
 import type { Account } from "@/lib/account-types";
 import { roleAtLeast } from "@/lib/account-types";
+import { STATIC_MODE } from "./static-mode";
+import { staticSessionUser, staticTopRole } from "./static-backend";
 
 /** "admin1" style logins map to the store's email domain. */
 export const loginToEmail = (login: string) =>
@@ -22,6 +24,38 @@ export function useAuth() {
   }, [sync]);
 
   useEffect(() => {
+    if (STATIC_MODE) {
+      // Backend local (localStorage) : session + rôle depuis static-backend.
+      const load = () => {
+        const su = staticSessionUser();
+        if (su) {
+          const role = staticTopRole(su.id);
+          setUser({
+            id: su.id,
+            email: su.email,
+            user_metadata: { full_name: su.fullName },
+          } as unknown as User);
+          setAccount({
+            userId: su.id,
+            email: su.email,
+            fullName: su.fullName,
+            role,
+            status: "active",
+            createdAt: su.createdAt,
+            updatedAt: su.createdAt,
+            lastSeenAt: su.createdAt,
+          });
+        } else {
+          setUser(null);
+          setAccount(null);
+        }
+        setLoading(false);
+      };
+      void load();
+      window.addEventListener("ps-static-auth", load);
+      return () => window.removeEventListener("ps-static-auth", load);
+    }
+
     let alive = true;
 
     const load = async (nextUser: User | null) => {

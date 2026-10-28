@@ -45,7 +45,7 @@ function devUploads(): Plugin {
 // Self-hosted build: plain Vite + TanStack Start, emitting a Node server
 // (`.output/server/index.mjs`) that Caddy proxies on 127.0.0.1:5077.
 // VITE_STATIC_MODE=1 → build SPA statique (Cloudflare Pages), sans Nitro.
-const STATIC_BUILD = process.env.VITE_STATIC_MODE === "1";
+const STATIC_BUILD = process.env["VITE_STATIC_MODE"] === "1";
 
 export default defineConfig(({ command }) => ({
   server: { host: "127.0.0.1", port: 5173 },

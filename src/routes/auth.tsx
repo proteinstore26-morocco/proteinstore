@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { loginToEmail } from "@/lib/auth";
 import { syncMyAccount } from "@/lib/account.functions";
 import { roleAtLeast } from "@/lib/account-types";
+import { STATIC_MODE } from "@/lib/static-mode";
+import { staticSignIn, staticSignUp, staticTopRole } from "@/lib/static-backend";
 import { useI18n } from "@/lib/i18n";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
@@ -63,6 +65,12 @@ function AuthPage() {
 
     try {
       if (mode === "forgot") {
+        if (STATIC_MODE) {
+          setMsg(
+            "Réinitialisation indisponible en démo statique — écrivez-nous sur WhatsApp Business pour réinitialiser votre mot de passe.",
+          );
+          return;
+        }
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/auth/reset`,
         });
@@ -75,6 +83,18 @@ function AuthPage() {
       }
 
       if (mode === "in") {
+        if (STATIC_MODE) {
+          const res = staticSignIn(email, password);
+          if (!res.ok || !res.session) {
+            setMsg("Identifiant ou mot de passe incorrect.");
+            return;
+          }
+          window.dispatchEvent(new Event("ps-static-auth"));
+          const role = staticTopRole(res.session.user.id);
+          if (roleAtLeast(role, "manager")) nav({ to: "/admin" });
+          else nav({ to: "/account" });
+          return;
+        }
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) {
           setMsg("Identifiant ou mot de passe incorrect.");
@@ -86,6 +106,17 @@ function AuthPage() {
           .eq("user_id", data.user.id);
         if (roles?.some((role) => role.role !== "customer")) nav({ to: "/admin" });
         else nav({ to: "/account" });
+        return;
+      }
+
+      if (STATIC_MODE) {
+        const res = staticSignUp(email, password, String(form.get("name")));
+        setMsg(
+          res.ok
+            ? "Compte créé ! Connectez-vous avec vos identifiants."
+            : (res.error ?? "Erreur lors de la création du compte."),
+        );
+        if (res.ok) setMode("in");
         return;
       }
 
