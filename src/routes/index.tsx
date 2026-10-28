@@ -8,6 +8,7 @@ import { PartnerMarquee } from "@/components/site/PartnerMarquee";
 import { Countdown } from "@/components/site/Countdown";
 import { Button } from "@/components/ui/button";
 import { whatsappUrl } from "@/lib/whatsapp";
+import { useI18n } from "@/lib/i18n";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
@@ -33,6 +34,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+  const { t } = useI18n();
   const { products, categories, campaigns, partners, reviews } = useCatalog();
   const now = Date.now();
   const camp = campaigns.find(
@@ -59,18 +61,18 @@ function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent" />
         <div className="container-ps relative py-24 md:py-36">
           <p className="font-mono text-xs uppercase tracking-widest text-primary">
-            Kénitra · Depuis le Maroc
+            {t("Kénitra · Depuis le Maroc")}
           </p>
           <h1 className="headline mt-4 max-w-3xl text-5xl md:text-7xl">
-            Nutrition sportive <span className="text-primary">100% authentique.</span>
+            {t("Nutrition sportive")}{" "}
+            <span className="text-primary">{t("100% authentique.")}</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-            Whey, créatine, gainers, pré-workouts. Livraison partout au Maroc et paiement à la
-            livraison.
+            {t("Whey, créatine, gainers, pré-workouts. Livraison partout au Maroc et paiement à la livraison.")}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg">
-              <Link to="/shop">Voir la boutique</Link>
+              <Link to="/shop">{t("Voir la boutique")}</Link>
             </Button>
             <Button asChild size="lg" variant="outline">
               <a

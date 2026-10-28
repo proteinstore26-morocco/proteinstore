@@ -7,6 +7,7 @@ import {
   canRevokeStaff,
   orderStatusSchema,
   productEditSchema,
+  slugify,
   partnerEditSchema,
 } from "./admin-rules";
 
@@ -77,7 +78,31 @@ export const saveProductAdmin = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => productEditSchema.parse(d))
   .handler(async ({ context, data }) => {
     await authorize(context);
-    const { id, ...values } = data;
+    const { id, slug: slugInput, title, ...rest } = data;
+
+    // Création : slug unique dérivé du titre (ou fourni).
+    if (!id) {
+      let base = slugInput || slugify(title);
+      const { data: existing } = await context.supabase
+        .from("products")
+        .select("slug")
+        .ilike("slug", `${base}%`);
+      const taken = new Set((existing ?? []).map((row) => row.slug));
+      if (taken.has(base)) {
+        let suffix = 2;
+        while (taken.has(`${base}-${suffix}`)) suffix += 1;
+        base = `${base}-${suffix}`;
+      }
+      const created = await context.supabase
+        .from("products")
+        .insert({ ...rest, title, slug: base })
+        .select("id")
+        .single();
+      if (created.error) throw new Error("Impossible de créer le produit.");
+      return { ok: true, id: created.data?.id };
+    }
+
+    const values = { ...rest, ...(slugInput ? { slug: slugInput } : {}) };
     const result = await context.supabase
       .from("products")
       .update(values)
@@ -85,7 +110,7 @@ export const saveProductAdmin = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (result.error) throw new Error("Impossible d’enregistrer le produit.");
-    return { ok: true };
+    return { ok: true, id };
   });
 
 export const savePartnerAdmin = createServerFn({ method: "POST" })

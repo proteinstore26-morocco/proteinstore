@@ -24,9 +24,20 @@ export const statusLabels: Record<z.infer<typeof orderStatusSchema>, string> = {
   delivered: "Livrée",
   cancelled: "Annulée",
 };
+/** Slug URL dérivé du titre (accents retirés). */
+export const slugify = (title: string): string =>
+  title
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 180) || "produit";
+
 export const productEditSchema = z
   .object({
-    id: z.string().uuid(),
+    id: z.string().uuid().optional(),
+    slug: z.string().trim().max(200).optional(),
     title: z.string().trim().min(2).max(200),
     brand: z.string().trim().max(100),
     description: z.string().trim().max(10000),

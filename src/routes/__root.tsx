@@ -11,6 +11,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { CartProvider } from "@/lib/cart";
+import { I18nProvider } from "@/lib/i18n";
 import { AnnouncementBar, Header, Footer, CartDrawer, WhatsAppFab } from "@/components/site/Layout";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -120,15 +121,17 @@ function RootComponent() {
   }, [router, queryClient]);
   return (
     <QueryClientProvider client={queryClient}>
-      <CartProvider>
-        <AnnouncementBar />
-        <Header />
-        <Outlet />
-        <Footer />
-        <CartDrawer />
-        <WhatsAppFab />
-        <Toaster />
-      </CartProvider>
+      <I18nProvider>
+        <CartProvider>
+          <AnnouncementBar />
+          <Header />
+          <Outlet />
+          <Footer />
+          <CartDrawer />
+          <WhatsAppFab />
+          <Toaster />
+        </CartProvider>
+      </I18nProvider>
     </QueryClientProvider>
   );
 }

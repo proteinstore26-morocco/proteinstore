@@ -8,6 +8,7 @@ import { productImage } from "@/lib/images";
 import { mad } from "@/lib/pricing";
 import { productJsonLd, SITE_URL } from "@/lib/seo";
 import { useCart } from "@/lib/cart";
+import { useI18n } from "@/lib/i18n";
 import { Stars } from "@/components/site/ProductCard";
 import { Button } from "@/components/ui/button";
 
@@ -34,6 +35,7 @@ function ProductPage() {
   const { campaigns } = useCatalog();
   const p = data.product as unknown as Product & { description: string | null; nutrition_facts: { label: string; value: string }[] };
   const { add } = useCart();
+  const { t } = useI18n();
   const [qty, setQty] = useState(1);
   const [flavor, setFlavor] = useState(p.flavors[0] ?? "");
   const pr = priceOf(p, campaigns);
@@ -72,7 +74,7 @@ function ProductPage() {
             {pr.percentOff > 0 && <span className="rounded bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">-{pr.percentOff}%</span>}
           </div>
           <p className={`mt-2 text-sm ${out ? "text-destructive" : p.stock_quantity <= p.low_stock_threshold ? "text-gold" : "text-muted-foreground"}`}>
-            {out ? "Rupture de stock" : p.stock_quantity <= p.low_stock_threshold ? `Plus que ${p.stock_quantity} en stock` : "En stock"}
+            {out ? t("Indisponible") : p.stock_quantity <= p.low_stock_threshold ? `${t("Plus que")} ${p.stock_quantity} ${t("En stock")}` : t("En stock")}
           </p>
           {p.flavors.length > 0 && (
             <div className="mt-6"><p className="text-sm font-medium">Saveur</p>
@@ -85,7 +87,7 @@ function ProductPage() {
               <span className="w-8 text-center">{qty}</span>
               <button className="p-3" onClick={() => setQty(Math.min(p.stock_quantity, qty + 1))} aria-label="Plus"><Plus className="size-4" /></button>
             </div>
-            <Button size="lg" className="flex-1" disabled={out} onClick={() => add({ productId: p.id, slug: p.slug, title: p.title, brand: p.brand, image: img, unitPrice: pr.price, ...(flavor ? { flavor } : {}), maxQty: p.stock_quantity }, qty)}>Ajouter au panier</Button>
+            <Button size="lg" className="flex-1" disabled={out} onClick={() => add({ productId: p.id, slug: p.slug, title: p.title, brand: p.brand, image: img, unitPrice: pr.price, ...(flavor ? { flavor } : {}), maxQty: p.stock_quantity }, qty)}>{t("Ajouter au panier")}</Button>
           </div>
           <div className="mt-6 space-y-2 text-sm text-muted-foreground">
             <p className="flex items-center gap-2"><Truck className="size-4 text-primary" />Livraison partout au Maroc, gratuite dès 500 MAD</p>

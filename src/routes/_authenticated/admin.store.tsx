@@ -81,6 +81,27 @@ export const Route = createFileRoute("/_authenticated/admin/store")({
 const date = (s: string) =>
   new Date(s).toLocaleDateString("fr-MA", { day: "2-digit", month: "short", year: "numeric" });
 const text = (f: FormData, key: string) => String(f.get(key) ?? "");
+
+/** Fiche vierge pour la création d'un produit (champs du CSV + photos). */
+const EMPTY_PRODUCT = {
+  id: "",
+  title: "",
+  brand: "",
+  description: "",
+  category_id: null,
+  price: 0,
+  sale_price: null,
+  stock_quantity: 0,
+  low_stock_threshold: 5,
+  status: "draft",
+  is_featured: false,
+  flavors: [],
+  image_urls: [],
+  sku: null,
+  slug: "",
+  created_at: "",
+  updated_at: "",
+} as unknown as Tables<"products">;
 const statusTone = (s: string) =>
   s === "delivered"
     ? "text-success border-success/30"
@@ -114,7 +135,7 @@ function Admin() {
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<
     | { type: "order"; value: AdminOrder }
-    | { type: "product"; value: Tables<"products"> }
+    | { type: "product"; value?: Tables<"products"> }
     | { type: "partner"; value?: Tables<"partners"> }
     | null
   >(null);
@@ -129,6 +150,7 @@ function Admin() {
     e.preventDefault();
     if (!editing) return;
     const f = new FormData(e.currentTarget);
+    const publish = f.get("publish_action") === "1";
     setBusy(true);
     try {
       if (editing.type === "order")
@@ -142,7 +164,8 @@ function Admin() {
       if (editing.type === "product")
         await saveProduct({
           data: productEditSchema.parse({
-            id: editing.value.id,
+            ...(editing.value?.id ? { id: editing.value.id } : {}),
+            ...(text(f, "slug") ? { slug: text(f, "slug") } : {}),
             image_urls: (() => {
               try {
                 const parsed = JSON.parse(text(f, "image_urls") || "[]");
@@ -159,7 +182,7 @@ function Admin() {
             sale_price: text(f, "sale_price") === "" ? null : Number(f.get("sale_price")),
             stock_quantity: Number(f.get("stock_quantity")),
             low_stock_threshold: Number(f.get("low_stock_threshold")),
-            status: text(f, "status"),
+            status: publish ? "published" : text(f, "status"),
             is_featured: f.get("is_featured") === "on",
             flavors: text(f, "flavors")
               .split(",")
@@ -440,6 +463,12 @@ function Admin() {
           >
             <RefreshCw className={query.isFetching ? "animate-spin" : ""} />
           </Button>
+          {tab === "products" && (
+            <Button onClick={() => setEditing({ type: "product" })}>
+              <Plus />
+              Nouveau produit
+            </Button>
+          )}
           {tab === "partners" && (
             <Button onClick={() => setEditing({ type: "partner" })}>
               <Plus />
@@ -660,14 +689,17 @@ function Admin() {
             editing.type === "order"
               ? `Commande ${editing.value.order_number}`
               : editing.type === "product"
-                ? "Modifier le produit"
+                ? editing.value
+                  ? "Modifier le produit"
+                  : "Nouveau produit"
                 : editing.value
                   ? "Modifier le partenaire"
                   : "Ajouter un partenaire"
           }
           subtitle={
             editing.type === "product"
-              ? (editing.value.sku ?? "Catalogue")
+              ? (editing.value?.sku ??
+                "Remplissez la fiche, ajoutez des photos, puis Publiez pour l'afficher en boutique.")
               : editing.type === "order"
                 ? date(editing.value.created_at)
                 : "Salles partenaires"
@@ -680,11 +712,14 @@ function Admin() {
             {editing.type === "order" ? (
               <OrderFields order={editing.value} />
             ) : editing.type === "product" ? (
-              <ProductFields product={editing.value} categories={data.categories} />
+              <ProductFields
+                product={editing.value ?? EMPTY_PRODUCT}
+                categories={data.categories}
+              />
             ) : (
               <PartnerFields partner={editing.value} />
             )}
-            <div className="flex justify-end gap-2">
+            <div className="flex flex-wrap justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -693,6 +728,11 @@ function Admin() {
               >
                 Annuler
               </Button>
+              {editing.type === "product" && (
+                <Button type="submit" name="publish_action" value="1" disabled={busy}>
+                  Publier
+                </Button>
+              )}
               <SaveButton busy={busy} />
             </div>
           </form>

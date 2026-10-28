@@ -5,6 +5,7 @@ import { useCart } from "@/lib/cart";
 import { mad, shippingFor } from "@/lib/pricing";
 import { whatsappUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
 import { createOrder, validatePromo } from "@/lib/orders.functions";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,6 +33,7 @@ export const Route = createFileRoute("/checkout")({
 
 function Checkout() {
   const { items, subtotal, clear } = useCart();
+  const { t } = useI18n();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [city, setCity] = useState("Kénitra");
@@ -66,9 +68,9 @@ function Checkout() {
   if (!items.length) {
     return (
       <main className="container-ps section-ps text-center">
-        <h1 className="headline text-4xl">Votre panier est vide</h1>
+        <h1 className="headline text-4xl">{t("Votre panier est vide.")}</h1>
         <Button asChild className="mt-6">
-          <Link to="/shop">Découvrir la boutique</Link>
+          <Link to="/shop">{t("Découvrir la boutique")}</Link>
         </Button>
       </main>
     );
@@ -120,16 +122,16 @@ function Checkout() {
 
   return (
     <main className="container-ps section-ps">
-      <h1 className="headline text-5xl">Commande</h1>
+      <h1 className="headline text-5xl">{t("Commande")}</h1>
       <p className="mt-3 max-w-2xl text-sm text-muted-foreground">
-        Renseignez vos coordonnées : la commande est enregistrée, puis WhatsApp s'ouvre avec le
-        récapitulatif complet. Notre équipe confirme la livraison et vous payez en espèces à la
-        réception.
+        {t(
+          "Renseignez vos coordonnées : la commande est enregistrée, puis WhatsApp s'ouvre avec le récapitulatif complet. Notre équipe confirme la livraison et vous payez en espèces à la réception.",
+        )}
       </p>
       <div className="mt-8 grid gap-10 md:grid-cols-[1fr_380px]">
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <Label htmlFor="name">Nom complet *</Label>
+            <Label htmlFor="name">{t("Nom complet")} *</Label>
             <Input
               id="name"
               name="name"
@@ -140,7 +142,7 @@ function Checkout() {
             />
           </div>
           <div>
-            <Label htmlFor="phone">Téléphone *</Label>
+            <Label htmlFor="phone">{t("Téléphone")} *</Label>
             <Input
               id="phone"
               name="phone"
@@ -151,11 +153,11 @@ function Checkout() {
             />
           </div>
           <div>
-            <Label htmlFor="email">E-mail (optionnel)</Label>
+            <Label htmlFor="email">{t("E-mail (optionnel)")}</Label>
             <Input id="email" name="email" type="email" maxLength={255} autoComplete="email" />
           </div>
           <div>
-            <Label htmlFor="city">Ville *</Label>
+            <Label htmlFor="city">{t("Ville")} *</Label>
             <Input
               id="city"
               name="city"
@@ -166,11 +168,11 @@ function Checkout() {
               autoComplete="address-level2"
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              Livraison Kénitra 20 MAD · autres villes 30 MAD · gratuite dès 500 MAD.
+              {t("Livraison Kénitra 20 MAD · autres villes 30 MAD · gratuite dès 500 MAD.")}
             </p>
           </div>
           <div>
-            <Label htmlFor="address">Adresse *</Label>
+            <Label htmlFor="address">{t("Adresse")} *</Label>
             <Textarea
               id="address"
               name="address"
@@ -181,7 +183,7 @@ function Checkout() {
             />
           </div>
           <div>
-            <Label htmlFor="notes">Remarques</Label>
+            <Label htmlFor="notes">{t("Remarques")}</Label>
             <Textarea
               id="notes"
               name="notes"
@@ -192,9 +194,9 @@ function Checkout() {
           <div className="flex items-center gap-3 rounded-lg border border-primary bg-card p-4">
             <Banknote className="size-6 shrink-0 text-primary" />
             <div>
-              <p className="font-semibold">Paiement à la livraison</p>
+              <p className="font-semibold">{t("Paiement à la livraison")}</p>
               <p className="text-sm text-muted-foreground">
-                Vous payez en espèces à la réception. Aucun paiement en ligne.
+                {t("Vous payez en espèces à la réception. Aucun paiement en ligne.")}
               </p>
             </div>
           </div>
@@ -217,7 +219,7 @@ function Checkout() {
           )}
           <div className="rounded-lg border border-border bg-card p-4">
             <Label htmlFor="promo" className="flex items-center gap-2">
-              <BadgePercent className="size-4 text-primary" /> Code promo salle partenaire
+              <BadgePercent className="size-4 text-primary" /> {t("Code promo salle partenaire")}
             </Label>
             <div className="mt-2 flex gap-2">
               <Input
@@ -230,7 +232,7 @@ function Checkout() {
                 className="font-mono"
               />
               <Button type="button" variant="outline" onClick={applyPromo} disabled={promoBusy}>
-                {promoBusy ? "…" : "Appliquer"}
+                {promoBusy ? "…" : t("Appliquer")}
               </Button>
             </div>
             {promoMsg && (
@@ -239,14 +241,14 @@ function Checkout() {
               </p>
             )}
             <p className="mt-2 text-xs text-muted-foreground">
-              Membres des salles partenaires : votre code club s'applique directement.
+              {t("Membres des salles partenaires : votre code club s'applique directement.")}
             </p>
           </div>
           <Button type="submit" size="lg" className="w-full" disabled={busy}>
             <MessageCircle className="mr-2 size-5" />
             {busy
-              ? "Enregistrement de la commande…"
-              : `Commander sur WhatsApp · ${mad(total)}`}
+              ? t("Enregistrement de la commande…")
+              : `${t("Commander sur WhatsApp")} · ${mad(total)}`}
           </Button>
           <p className="text-center text-xs text-muted-foreground">
             Numéro de la boutique : <span className="font-mono">{WHATSAPP_DISPLAY}</span>
@@ -254,7 +256,7 @@ function Checkout() {
         </form>
 
         <aside className="h-fit rounded-xl border border-border bg-card p-6">
-          <h2 className="font-semibold">Récapitulatif</h2>
+          <h2 className="font-semibold">{t("Récapitulatif")}</h2>
           <ul className="mt-4 space-y-3">
             {items.map((item) => (
               <li

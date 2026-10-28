@@ -22,7 +22,11 @@ const PRODUCT_COLS = "id,title,slug,brand,price,sale_price,stock_quantity,low_st
 export const getCatalog = createServerFn({ method: "GET" }).handler(async () => {
   const sb = publicClient();
   const [products, categories, campaigns, partners, reviews] = await Promise.all([
-    sb.from("products").select(PRODUCT_COLS).order("created_at", { ascending: false }),
+    sb
+      .from("products")
+      .select(PRODUCT_COLS)
+      .eq("status", "published")
+      .order("created_at", { ascending: false }),
     sb.from("categories").select("*").order("display_order"),
     sb.from("campaigns").select("*").eq("is_active", true),
     sb.from("partners").select("*").order("display_order"),
@@ -41,7 +45,12 @@ export const getProduct = createServerFn({ method: "GET" })
   .inputValidator((d: { slug: string }) => d)
   .handler(async ({ data }) => {
     const sb = publicClient();
-    const { data: product } = await sb.from("products").select(PRODUCT_COLS + ",description,nutrition_facts,sku").eq("slug", data.slug).maybeSingle();
+    const { data: product } = await sb
+      .from("products")
+      .select(PRODUCT_COLS + ",description,nutrition_facts,sku")
+      .eq("slug", data.slug)
+      .eq("status", "published")
+      .maybeSingle();
     if (!product) return { product: null, reviews: [] };
     const { data: reviews } = await sb.from("reviews").select("*").eq("product_id", (product as unknown as { id: string }).id).order("created_at", { ascending: false });
     return { product, reviews: reviews ?? [] };

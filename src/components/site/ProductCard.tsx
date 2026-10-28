@@ -5,6 +5,7 @@ import { priceOf } from "@/lib/catalog";
 import { productImage } from "@/lib/images";
 import { mad } from "@/lib/pricing";
 import { useCart } from "@/lib/cart";
+import { useI18n } from "@/lib/i18n";
 
 export function Stars({ value, size = 14 }: { value: number; size?: number }) {
   return (
@@ -16,6 +17,7 @@ export function Stars({ value, size = 14 }: { value: number; size?: number }) {
 
 export function ProductCard({ p, campaigns }: { p: Product; campaigns: Catalog["campaigns"] }) {
   const { add } = useCart();
+  const { t } = useI18n();
   const pr = priceOf(p, campaigns);
   const img = productImage(p);
   const out = p.stock_quantity <= 0;
@@ -24,7 +26,7 @@ export function ProductCard({ p, campaigns }: { p: Product; campaigns: Catalog["
       <Link to="/product/$slug" params={{ slug: p.slug }} className="relative block aspect-square overflow-hidden bg-background">
         <img src={img} alt={p.title} loading="lazy" className={`size-full object-cover transition-transform duration-700 group-hover:scale-105 ${out ? "grayscale" : ""}`} />
         {pr.percentOff > 0 && !out && <span className="absolute start-3 top-3 animate-pulse rounded-full bg-primary px-2.5 py-1 font-mono text-xs font-bold">-{pr.percentOff}%</span>}
-        {out && <span className="absolute inset-0 grid place-items-center bg-background/60"><span className="rounded-full border bg-background px-3 py-1 text-xs font-bold uppercase">Rupture de stock</span></span>}
+        {out && <span className="absolute inset-0 grid place-items-center bg-background/60"><span className="rounded-full border bg-background px-3 py-1 text-xs font-bold uppercase">{t("Indisponible")}</span></span>}
       </Link>
       <div className="flex flex-1 flex-col p-4">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{p.brand}</p>

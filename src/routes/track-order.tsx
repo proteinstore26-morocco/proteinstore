@@ -5,6 +5,7 @@ import { trackOrder } from "@/lib/orders.functions";
 import { STATUS_LABELS, type PublicOrder } from "@/lib/order-types";
 import { mad } from "@/lib/pricing";
 import { buildTrackingMessage, whatsappUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
+import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,7 @@ const STEPS = [
 ] as const;
 
 function Track() {
+  const { t } = useI18n();
   const [result, setResult] = useState<PublicOrder | null>(null);
   const [results, setResults] = useState<PublicOrder[] | null>(null);
   const [searched, setSearched] = useState(false);
@@ -74,8 +76,9 @@ function Track() {
     <main className="container-ps section-ps max-w-3xl">
       <h1 className="headline text-5xl">Suivi de commande</h1>
       <p className="mt-4 text-muted-foreground">
-        Entrez votre numéro de commande et votre téléphone — ou seulement votre téléphone pour
-        retrouver toutes vos commandes. Le suivi est mis à jour par la boutique à chaque étape.
+        {t(
+          "Entrez votre numéro de commande et votre téléphone — ou seulement votre téléphone pour retrouver toutes vos commandes. Le suivi est mis à jour par la boutique à chaque étape.",
+        )}
       </p>
       <form onSubmit={submit} className="mt-8 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
         <Input
@@ -106,7 +109,7 @@ function Track() {
       {searched && !result && (results?.length ?? 0) > 1 && (
         <div className="mt-8 space-y-3">
           <p className="text-sm text-muted-foreground">
-            {results!.length} commandes trouvées pour ce téléphone :
+            {results!.length} {t("commandes trouvées pour ce téléphone :")}
           </p>
           {results!.map((order) => {
             const idx = STEPS.findIndex((step) => step.status === order.status);
@@ -123,7 +126,7 @@ function Track() {
                 <span className="text-xs text-muted-foreground">
                   {new Date(order.createdAt).toLocaleDateString("fr-MA")}
                 </span>
-                <Badge variant="outline">{STATUS_LABELS[order.status]}</Badge>
+                <Badge variant="outline">{t(STATUS_LABELS[order.status])}</Badge>
                 <span className="font-mono">{mad(order.total)}</span>
                 <span className="text-xs text-muted-foreground">
                   {order.status === "cancelled"
@@ -167,7 +170,7 @@ function Track() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-mono text-sm text-muted-foreground">{result.orderNumber}</p>
-                <h2 className="headline mt-1 text-3xl">{STATUS_LABELS[result.status]}</h2>
+                <h2 className="headline mt-1 text-3xl">{t(STATUS_LABELS[result.status])}</h2>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Commandé le {new Date(result.createdAt).toLocaleDateString("fr-MA")} · Paiement{" "}
                   {result.paymentStatus === "paid" ? "encaissé" : "à la livraison"}
@@ -196,7 +199,7 @@ function Track() {
                         className={`size-5 ${reached ? "text-primary" : "text-muted-foreground"}`}
                       />
                       <p className={`mt-2 font-medium ${reached ? "" : "text-muted-foreground"}`}>
-                        {step.label}
+                        {t(step.label)}
                       </p>
                     </li>
                   );
@@ -206,7 +209,7 @@ function Track() {
           </section>
 
           <section className="rounded-xl border border-border bg-card p-6">
-            <h3 className="font-semibold">Articles</h3>
+            <h3 className="font-semibold">{t("Articles")}</h3>
             <ul className="mt-3 space-y-2 text-sm">
               {result.items.map((item, index) => (
                 <li key={`${item.title}-${index}`} className="flex justify-between gap-3">
@@ -226,7 +229,7 @@ function Track() {
                 </p>
               )}
               <p className="flex justify-between text-base font-bold">
-                <span>Total</span>
+                <span>{t("Total")}</span>
                 <span className="font-mono">{mad(result.total)}</span>
               </p>
             </div>

@@ -17,6 +17,7 @@ import { mad, FREE_SHIPPING_THRESHOLD, shippingFor } from "@/lib/pricing";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/lib/auth";
+import { useI18n, LanguageSwitcher } from "@/lib/i18n";
 import { whatsappUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
 
 export const INSTAGRAM = "https://www.instagram.com/proteinestore";
@@ -28,17 +29,18 @@ const messages = [
 ];
 
 export function AnnouncementBar() {
+  const { t } = useI18n();
   const [i, setI] = useState(0);
   const [hidden, setHidden] = useState(false);
   useEffect(() => {
-    const t = setInterval(() => setI((x) => (x + 1) % messages.length), 4000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setI((x) => (x + 1) % messages.length), 4000);
+    return () => clearInterval(timer);
   }, []);
   if (hidden) return null;
   return (
     <div className="relative bg-primary py-2 text-center text-xs font-semibold tracking-wide text-primary-foreground md:text-sm">
       <span key={i} className="inline-block animate-fade-up">
-        {messages[i]}
+        {t(messages[i] ?? "")}
       </span>
       <button
         aria-label="Fermer"
@@ -62,6 +64,7 @@ const nav = [
 export function Header() {
   const { count, setOpen } = useCart();
   const { user, isManager } = useAuth();
+  const { t } = useI18n();
   const [scrolled, setScrolled] = useState(false);
   const [menu, setMenu] = useState(false);
   useEffect(() => {
@@ -86,7 +89,7 @@ export function Header() {
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               activeProps={{ className: "text-foreground" }}
             >
-              {n.label}
+              {t(n.label)}
             </Link>
           ))}
         </nav>
@@ -119,6 +122,7 @@ export function Header() {
               </span>
             )}
           </button>
+          <LanguageSwitcher compact />
           <button
             aria-label="Menu"
             onClick={() => setMenu(true)}
@@ -141,7 +145,7 @@ export function Header() {
                 onClick={() => setMenu(false)}
                 className="headline text-4xl"
               >
-                {n.label}
+                {t(n.label)}
               </Link>
             ))}
           </nav>
@@ -153,20 +157,21 @@ export function Header() {
 
 export function CartDrawer() {
   const { items, open, setOpen, setQty, remove, subtotal } = useCart();
+  const { t } = useI18n();
   const ship = shippingFor(subtotal);
   const left = Math.max(0, FREE_SHIPPING_THRESHOLD - subtotal);
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetContent className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
-          <SheetTitle className="headline text-2xl">Votre panier</SheetTitle>
+          <SheetTitle className="headline text-2xl">{t("Votre panier")}</SheetTitle>
         </SheetHeader>
         {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
             <ShoppingBag className="size-16 text-muted-foreground" />
-            <p className="text-muted-foreground">Votre panier est vide.</p>
+            <p className="text-muted-foreground">{t("Votre panier est vide.")}</p>
             <Button asChild onClick={() => setOpen(false)}>
-              <Link to="/shop">Découvrir la boutique</Link>
+              <Link to="/shop">{t("Découvrir la boutique")}</Link>
             </Button>
           </div>
         ) : (
@@ -175,11 +180,11 @@ export function CartDrawer() {
               <p className="text-sm text-muted-foreground">
                 {left > 0 ? (
                   <>
-                    Plus que <b className="text-foreground">{mad(left)}</b> pour la livraison
-                    gratuite
+                    {t("Plus que")} <b className="text-foreground">{mad(left)}</b>{" "}
+                    {t("pour la livraison gratuite")}
                   </>
                 ) : (
-                  "🎉 Livraison gratuite débloquée"
+                  t("🎉 Livraison gratuite débloquée")
                 )}
               </p>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-secondary">
@@ -229,19 +234,19 @@ export function CartDrawer() {
             </div>
             <div className="space-y-2 border-t p-4 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Sous-total</span>
+                <span className="text-muted-foreground">{t("Sous-total")}</span>
                 <span className="font-mono">{mad(subtotal)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Livraison</span>
-                <span className="font-mono">{ship ? mad(ship) : "Gratuite"}</span>
+                <span className="text-muted-foreground">{t("Livraison")}</span>
+                <span className="font-mono">{ship ? mad(ship) : t("Gratuite")}</span>
               </div>
               <div className="flex justify-between text-base font-bold">
-                <span>Total</span>
+                <span>{t("Total")}</span>
                 <span className="font-mono">{mad(subtotal + ship)}</span>
               </div>
               <Button asChild size="lg" className="mt-2 w-full" onClick={() => setOpen(false)}>
-                <Link to="/checkout">Passer la commande</Link>
+                <Link to="/checkout">{t("Passer la commande")}</Link>
               </Button>
             </div>
           </>
@@ -252,6 +257,7 @@ export function CartDrawer() {
 }
 
 export function Footer() {
+  const { t } = useI18n();
   return (
     <footer className="border-t bg-card">
       <div className="container-ps grid gap-10 py-14 md:grid-cols-4">
@@ -263,27 +269,29 @@ export function Footer() {
             THE STANDARD. No Fakes. No Excuses. Just Results.
           </p>
           <p className="mt-4 inline-block rounded-full border px-3 py-1 text-xs">
-            💵 Paiement à la livraison
+            {t("💵 Paiement à la livraison")}
           </p>
         </div>
         <FooterCol
-          title="Boutique"
+          title={t("Boutique")}
           links={[
-            ["/shop", "Tous les produits"],
-            ["/partners", "Salles partenaires"],
-            ["/track-order", "Suivre ma commande"],
+            ["/shop", t("Tous les produits")],
+            ["/partners", t("Salles partenaires")],
+            ["/track-order", t("Suivre ma commande")],
           ]}
         />
         <FooterCol
-          title="Entreprise"
+          title={t("Entreprise")}
           links={[
-            ["/about", "À propos"],
+            ["/about", t("À propos")],
             ["/contact", "Contact"],
-            ["/account", "Mon compte"],
+            ["/account", t("Mon compte")],
           ]}
         />
         <div>
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wider">Contact</p>
+          <p className="mb-3 flex items-center justify-between gap-2 text-sm font-semibold uppercase tracking-wider">
+            Contact <LanguageSwitcher />
+          </p>
           <p className="text-sm text-muted-foreground">Kénitra, Maroc</p>
           <a
             href={whatsappUrl("Bonjour PROTEIN STORE® 👋")}
@@ -314,7 +322,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t py-5 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} PROTEIN STORE® — Tous droits réservés
+        © {new Date().getFullYear()} PROTEIN STORE® — {t("Tous droits réservés")}
       </div>
     </footer>
   );

@@ -1,5 +1,21 @@
 # Lancer le projet réel en local (ce PC) — guide
 
+## Ajouts du 28/10 (v2 — commit f18c1d5)
+
+- **CSV catalogue** : import/export dans le format EXACT de votre fichier
+  (`;` + en-têtes français + BOM) — déjà présent, vérifié contre votre CSV.
+  Pages **/admin/catalogue** (modèle, export, import avec aperçu) et /admin/import.
+- **Nouveau produit** : bouton « Nouveau produit » dans /admin/store → onglet
+  Produits. Mêmes champs que le CSV + **photos** (upload ou URL, 5 max).
+  Bouton **Publier** = statut « Publié » → le produit apparaît en boutique
+  (la boutique n'affiche plus que les produits publiés).
+- **Stock 0 = « Indisponible »** sur la boutique (carte + fiche produit,
+  ajout panier bloqué).
+- **Multilingue AR / FR / EN** : drapeaux 🇲🇦🇫🇷🇬🇧 dans le header (compact) et le
+  footer. Choix mémorisé (localStorage). Arabe = RTL automatique. Dictionnaire
+  dans `src/lib/i18n.tsx` — les contenus produits restent dans leur langue
+  d'origine (une colonne par langue serait une évolution).
+
 ## Nouveautés du 28/10 (build storefront/back-office)
 
 - **Codes promo salles partenaires** : 9 salles seedées (PSPOWER10, PROFIT15 -15 %,

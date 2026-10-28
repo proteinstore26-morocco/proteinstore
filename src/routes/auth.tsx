@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { loginToEmail } from "@/lib/auth";
 import { syncMyAccount } from "@/lib/account.functions";
 import { roleAtLeast } from "@/lib/account-types";
+import { useI18n } from "@/lib/i18n";
 import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,7 @@ type Mode = "in" | "up" | "forgot";
 function AuthPage() {
   const nav = useNavigate();
   const sync = useServerFn(syncMyAccount);
+  const { t } = useI18n();
   const [mode, setMode] = useState<Mode>("in");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -109,7 +111,11 @@ function AuthPage() {
   }
 
   const title =
-    mode === "in" ? "Connexion" : mode === "up" ? "Créer un compte" : "Mot de passe oublié";
+    mode === "in"
+      ? t("Connexion")
+      : mode === "up"
+        ? t("Créer mon compte")
+        : t("Mot de passe oublié ?");
 
   return (
     <main className="container-ps section-ps max-w-md">
@@ -123,12 +129,12 @@ function AuthPage() {
       <form onSubmit={submit} className="mt-8 space-y-4">
         {mode === "up" && (
           <div>
-            <Label htmlFor="name">Nom</Label>
+            <Label htmlFor="name">{t("Nom")}</Label>
             <Input id="name" name="name" required autoComplete="name" />
           </div>
         )}
         <div>
-          <Label htmlFor="login">{mode === "in" ? "Identifiant ou e-mail" : "E-mail"}</Label>
+          <Label htmlFor="login">{mode === "in" ? t("Identifiant ou e-mail") : t("E-mail")}</Label>
           <Input
             id="login"
             name="login"
@@ -140,7 +146,7 @@ function AuthPage() {
         </div>
         {mode !== "forgot" && (
           <div>
-            <Label htmlFor="password">Mot de passe</Label>
+            <Label htmlFor="password">{t("Mot de passe")}</Label>
             <Input
               id="password"
               name="password"
@@ -158,12 +164,12 @@ function AuthPage() {
         )}
         <Button className="w-full" disabled={busy}>
           {busy
-            ? "Envoi…"
+            ? t("Envoi…")
             : mode === "in"
-              ? "Se connecter"
+              ? t("Se connecter")
               : mode === "up"
-                ? "Créer mon compte"
-                : "Envoyer le lien"}
+                ? t("Créer mon compte")
+                : t("Envoyer le lien")}
         </Button>
       </form>
 
@@ -197,7 +203,7 @@ function AuthPage() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52Z"
               />
             </svg>
-            Continuer avec Google
+            {t("Continuer avec Google")}
           </Button>
         </div>
       )}
@@ -211,7 +217,7 @@ function AuthPage() {
             }}
             className="text-primary hover:underline"
           >
-            Mot de passe oublié ?
+            {t("Mot de passe oublié ?")}
           </button>
         )}
         {mode === "forgot" && (
@@ -222,7 +228,7 @@ function AuthPage() {
             }}
             className="text-primary hover:underline"
           >
-            Retour à la connexion
+            {t("Retour à la connexion")}
           </button>
         )}
         {mode !== "forgot" && (
@@ -233,7 +239,7 @@ function AuthPage() {
             }}
             className="text-primary hover:underline"
           >
-            {mode === "in" ? "Pas de compte ? Inscrivez-vous" : "Déjà un compte ? Connectez-vous"}
+            {mode === "in" ? t("Pas de compte ? Inscrivez-vous") : t("Déjà un compte ? Connectez-vous")}
           </button>
         )}
       </div>
