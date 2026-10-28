@@ -3,7 +3,7 @@ import { useState } from "react";
 import { BadgePercent, Banknote, MessageCircle, ShieldCheck } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { mad, shippingFor } from "@/lib/pricing";
-import { whatsappUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
+import { whatsappUrl } from "@/lib/whatsapp";
 import { createOrder, validatePromo } from "@/lib/orders.functions";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
@@ -251,7 +251,8 @@ function Checkout() {
               : `${t("Commander sur WhatsApp")} · ${mad(total)}`}
           </Button>
           <p className="text-center text-xs text-muted-foreground">
-            Numéro de la boutique : <span className="font-mono">{WHATSAPP_DISPLAY}</span>
+            Confirmation par <span className="font-medium">WhatsApp Business</span> — réservez votre
+            numéro pour la livraison.
           </p>
         </form>
 

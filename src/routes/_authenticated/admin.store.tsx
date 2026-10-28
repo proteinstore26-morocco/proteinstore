@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileSpreadsheet,
+  FileText,
   Package,
   ShoppingBag,
   Users,
@@ -25,6 +26,7 @@ import {
   saveOrderAdmin,
   saveProductAdmin,
   savePartnerAdmin,
+  saveCategoryAdmin,
   listStaff,
   setStaff,
 } from "@/lib/admin.functions";
@@ -33,6 +35,7 @@ import {
   statusLabels,
   productEditSchema,
   partnerEditSchema,
+  categoryEditSchema,
   orderStatusSchema,
 } from "@/lib/admin-rules";
 import type { Tables } from "@/integrations/supabase/types";
@@ -53,6 +56,7 @@ import {
   EditorDialog,
   ProductFields,
   PartnerFields,
+  CategoryFields,
   OrderFields,
   SaveButton,
   Field,
@@ -115,6 +119,7 @@ function Admin() {
   const saveOrder = useServerFn(saveOrderAdmin);
   const saveProduct = useServerFn(saveProductAdmin);
   const savePartner = useServerFn(savePartnerAdmin);
+  const saveCategory = useServerFn(saveCategoryAdmin);
   const fetchStaff = useServerFn(listStaff);
   const changeStaff = useServerFn(setStaff);
   const queryClient = useQueryClient();
@@ -137,6 +142,7 @@ function Admin() {
     | { type: "order"; value: AdminOrder }
     | { type: "product"; value?: Tables<"products"> }
     | { type: "partner"; value?: Tables<"partners"> }
+    | { type: "category"; value?: Tables<"categories"> }
     | null
   >(null);
   const [busy, setBusy] = useState(false);
@@ -188,6 +194,16 @@ function Admin() {
               .split(",")
               .map((s) => s.trim())
               .filter(Boolean),
+          }),
+        });
+      if (editing.type === "category")
+        await saveCategory({
+          data: categoryEditSchema.parse({
+            id: editing.value?.id,
+            name: text(f, "name"),
+            description: text(f, "description"),
+            image_url: text(f, "image_url") === "" ? null : text(f, "image_url"),
+            display_order: Number(f.get("display_order") ?? 0),
           }),
         });
       if (editing.type === "partner")
@@ -310,6 +326,9 @@ function Admin() {
   const partners = data.partners.filter((p) =>
     [p.name, p.location ?? "", p.discount_code ?? ""].some((s) => s.toLowerCase().includes(needle)),
   );
+  const categories = data.categories.filter((c) =>
+    [c.name, c.slug ?? ""].some((s) => s.toLowerCase().includes(needle)),
+  );
   const stats = [
     {
       label: "Produits au catalogue",
@@ -395,6 +414,7 @@ function Admin() {
             {[
               { value: "orders", label: "Commandes", icon: ShoppingBag },
               { value: "products", label: "Produits", icon: Package },
+              { value: "categories", label: "Catégories", icon: FileText },
               { value: "partners", label: "Partenaires", icon: Users },
             ].map((t) => (
               <TabsTrigger key={t.value} value={t.value} className="gap-2 px-4 py-3">
@@ -415,7 +435,9 @@ function Admin() {
                   ? "N° commande, client, téléphone…"
                   : tab === "products"
                     ? "Produit, marque, référence…"
-                    : "Rechercher…"
+                    : tab === "categories"
+                      ? "Nom de catégorie…"
+                      : "Rechercher…"
               }
               value={search}
               onChange={(e) => {
@@ -467,6 +489,12 @@ function Admin() {
             <Button onClick={() => setEditing({ type: "product" })}>
               <Plus />
               Nouveau produit
+            </Button>
+          )}
+          {tab === "categories" && (
+            <Button onClick={() => setEditing({ type: "category" })}>
+              <Plus />
+              Nouvelle catégorie
             </Button>
           )}
           {tab === "partners" && (
@@ -593,6 +621,48 @@ function Admin() {
           )}
           {products.length === 0 && <Empty label="Aucun produit trouvé" />}
         </TabsContent>
+        <TabsContent value="categories">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {categories.map((c) => (
+              <article key={c.id} className="rounded-lg border bg-card p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-md bg-secondary">
+                      {c.image_url ? (
+                        <img src={c.image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      ) : (
+                        <Package className="size-5 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold">{c.name}</h2>
+                      <p className="mt-1 font-mono text-xs text-muted-foreground">{c.slug}</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title="Modifier la catégorie"
+                    aria-label={`Modifier ${c.name}`}
+                    onClick={() => setEditing({ type: "category", value: c })}
+                  >
+                    <Pencil />
+                  </Button>
+                </div>
+                {c.description && (
+                  <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{c.description}</p>
+                )}
+                <div className="mt-4 flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Ordre : {c.display_order}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {data.products.filter((p) => p.category_id === c.id).length} produit(s)
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+          {categories.length === 0 && <Empty label="Aucune catégorie trouvée" />}
+        </TabsContent>
         <TabsContent value="partners">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {partners.map((p) => (
@@ -692,17 +762,23 @@ function Admin() {
                 ? editing.value
                   ? "Modifier le produit"
                   : "Nouveau produit"
-                : editing.value
-                  ? "Modifier le partenaire"
-                  : "Ajouter un partenaire"
+                : editing.type === "category"
+                  ? editing.value
+                    ? "Modifier la catégorie"
+                    : "Nouvelle catégorie"
+                  : editing.value
+                    ? "Modifier le partenaire"
+                    : "Ajouter un partenaire"
           }
           subtitle={
             editing.type === "product"
               ? (editing.value?.sku ??
                 "Remplissez la fiche, ajoutez des photos, puis Publiez pour l'afficher en boutique.")
-              : editing.type === "order"
-                ? date(editing.value.created_at)
-                : "Salles partenaires"
+              : editing.type === "category"
+                ? "Nom, image et ordre d'affichage sur la boutique."
+                : editing.type === "order"
+                  ? date(editing.value.created_at)
+                  : "Salles partenaires"
           }
           close={() => {
             if (!busy) setEditing(null);
@@ -716,6 +792,8 @@ function Admin() {
                 product={editing.value ?? EMPTY_PRODUCT}
                 categories={data.categories}
               />
+            ) : editing.type === "category" ? (
+              <CategoryFields category={editing.value} />
             ) : (
               <PartnerFields partner={editing.value} />
             )}

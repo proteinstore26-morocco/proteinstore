@@ -1,5 +1,24 @@
 # Lancer le projet réel en local (ce PC) — guide
 
+## Catalogue réel + photos (28/10, pass photos)
+
+- Le mock sert maintenant le **vrai catalogue** : les 59 produits du CSV
+  `catalogue-proteinstore-2026-10-20.csv` (prix, promos, stocks, seuils, mise en
+  avant — exactement vos données). Fichiers : `..\supabase-mock\data.json`
+  (products) + `data/uploads/products/*.jpg` (photos, servies sur /uploads/…).
+- **Photos** : ~7 produits phares ont leur vraie photo (récupérée par recherche
+  web depuis les pages officielles/réenseigneurs). Les autres utilisent l'image
+  de leur catégorie — **comme votre site live actuel**. Pour compléter :
+  uploadez les photos depuis **/admin/store → Produits → Modifier → Photos**
+  (ou remplacez les fichiers dans `data/uploads/products/`).
+- Scripts réutilisables dans `..\supabase-mock\` : `build_catalog.py`
+  (CSV → catalogue), `crawl_live_images.py`, `fix_photos.py`,
+  `fetch_pdp_photos.py` (og:image des pages officielles), `mock-inbox.txt`
+  (e-mails de confirmation simulés).
+- ⚠️ Les photos de marques trouvées sur le web sont destinées à ce
+  **mock local de développement** uniquement. En production, utilisez vos
+  propres visuels (comme via l'import officiel / l'upload admin).
+
 ## Ajouts du 28/10 (v2 — commit f18c1d5)
 
 - **CSV catalogue** : import/export dans le format EXACT de votre fichier

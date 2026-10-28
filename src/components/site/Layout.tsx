@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/lib/auth";
 import { useI18n, LanguageSwitcher } from "@/lib/i18n";
-import { whatsappUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
+import { whatsappUrl } from "@/lib/whatsapp";
 
 export const INSTAGRAM = "https://www.instagram.com/proteinestore";
 
@@ -295,9 +295,9 @@ export function Footer() {
           <p className="text-sm text-muted-foreground">Kénitra, Maroc</p>
           <a
             href={whatsappUrl("Bonjour PROTEIN STORE® 👋")}
-            className="mt-2 block font-mono text-sm hover:text-primary"
+            className="mt-2 block text-sm font-medium hover:text-primary"
           >
-            {WHATSAPP_DISPLAY}
+            💬 WhatsApp Business
           </a>
           <div className="mt-4 flex gap-3">
             <a

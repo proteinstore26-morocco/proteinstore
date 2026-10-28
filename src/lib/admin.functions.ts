@@ -5,6 +5,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   canRevokeStaff,
+  categoryEditSchema,
   orderStatusSchema,
   productEditSchema,
   slugify,
@@ -128,6 +129,45 @@ export const savePartnerAdmin = createServerFn({ method: "POST" })
       : await context.supabase.from("partners").insert(values).select("id").single();
     if (result.error) throw new Error("Impossible d’enregistrer le partenaire.");
     return { ok: true };
+  });
+
+export const saveCategoryAdmin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => categoryEditSchema.parse(d))
+  .handler(async ({ context, data }) => {
+    await authorize(context);
+    const { id, slug: slugInput, name, ...rest } = data;
+
+    if (!id) {
+      let base = slugInput || slugify(name);
+      const { data: existing } = await context.supabase
+        .from("categories")
+        .select("slug")
+        .ilike("slug", `${base}%`);
+      const taken = new Set((existing ?? []).map((row) => row.slug));
+      if (taken.has(base)) {
+        let suffix = 2;
+        while (taken.has(`${base}-${suffix}`)) suffix += 1;
+        base = `${base}-${suffix}`;
+      }
+      const created = await context.supabase
+        .from("categories")
+        .insert({ ...rest, name, slug: base })
+        .select("id")
+        .single();
+      if (created.error) throw new Error("Impossible de créer la catégorie.");
+      return { ok: true, id: created.data?.id };
+    }
+
+    const values = { ...rest, name, ...(slugInput ? { slug: slugInput } : {}) };
+    const result = await context.supabase
+      .from("categories")
+      .update(values)
+      .eq("id", id)
+      .select("id")
+      .single();
+    if (result.error) throw new Error("Impossible d’enregistrer la catégorie.");
+    return { ok: true, id };
   });
 
 export const listStaff = createServerFn({ method: "GET" })

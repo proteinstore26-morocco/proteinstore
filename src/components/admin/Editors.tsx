@@ -27,7 +27,7 @@ import {
   isAllowedPartnerLogoUrl,
   isAllowedProductImageUrl,
 } from "@/lib/image-upload";
-import { uploadPartnerLogo, uploadProductImage } from "@/lib/uploads.functions";
+import { uploadCategoryImage, uploadPartnerLogo, uploadProductImage } from "@/lib/uploads.functions";
 import { useServerFn } from "@tanstack/react-start";
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -574,6 +574,122 @@ export function PartnerFields({ partner }: { partner?: Tables<"partners"> | unde
       <div className="flex items-center gap-2">
         <Checkbox id="active" name="is_active" defaultChecked={partner?.is_active ?? true} />
         <Label htmlFor="active">Partenaire actif</Label>
+      </div>
+    </div>
+  );
+}
+
+export function CategoryFields({ category }: { category?: Tables<"categories"> | undefined }) {
+  const upload = useServerFn(uploadCategoryImage);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [imageUrl, setImageUrl] = useState(category?.image_url ?? "");
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  function addUrl() {
+    const candidate = url.trim();
+    if (!isAllowedPartnerLogoUrl(candidate)) {
+      setError("URL invalide : utilisez https://… ou une image uploadée.");
+      return;
+    }
+    setImageUrl(candidate);
+    setUrl("");
+    setError("");
+  }
+
+  async function uploadImage(file: File | undefined) {
+    if (!file) return;
+    setBusy(true);
+    setError("");
+    try {
+      const payload = await toLogoPayload(file);
+      const result = await upload({ data: payload });
+      setImageUrl(result.url);
+      if (fileRef.current) fileRef.current.value = "";
+    } catch (uploadError) {
+      setError(uploadError instanceof Error ? uploadError.message : "Upload impossible.");
+    }
+    setBusy(false);
+  }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      <div className="sm:col-span-2">
+        <Label>Image de la catégorie (affichée en boutique)</Label>
+        <input type="hidden" name="image_url" value={imageUrl} />
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="hidden"
+          onChange={(event) => void uploadImage(event.target.files?.[0])}
+        />
+        <div className="mt-2 flex flex-wrap items-center gap-4">
+          <div className="grid size-24 shrink-0 place-items-center overflow-hidden rounded-lg border bg-secondary">
+            {imageUrl ? (
+              <img src={imageUrl} alt="Image de la catégorie" className="h-full w-full object-cover" />
+            ) : (
+              <ImagePlus className="size-8 text-neutral-400" />
+            )}
+          </div>
+          <div className="min-w-56 flex-1 space-y-2">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileRef.current?.click()}
+                disabled={busy}
+              >
+                {busy ? <Loader2 className="animate-spin" /> : <ImagePlus />} Choisir une image
+              </Button>
+              {imageUrl && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setImageUrl("")}
+                  disabled={busy}
+                >
+                  Retirer
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Input
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+                placeholder="https://exemple.com/image.jpg"
+                aria-label="URL de l'image"
+                className="min-w-40 flex-1"
+              />
+              <Button type="button" variant="outline" onClick={addUrl} disabled={busy || !url.trim()}>
+                Ajouter l'URL
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              JPEG/PNG/WebP, redimensionnée à 600 px max. Affichée sur le site public.
+            </p>
+            {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+          </div>
+        </div>
+      </div>
+      <Field label="Nom de la catégorie">
+        <Input name="name" required minLength={2} maxLength={120} defaultValue={category?.name ?? ""} />
+      </Field>
+      <Field label="Ordre d’affichage">
+        <Input
+          type="number"
+          min={0}
+          step={1}
+          name="display_order"
+          defaultValue={category?.display_order ?? 0}
+          required
+        />
+      </Field>
+      <div className="sm:col-span-2">
+        <Field label="Description">
+          <Textarea rows={2} name="description" maxLength={1000} defaultValue={category?.description ?? ""} />
+        </Field>
       </div>
     </div>
   );

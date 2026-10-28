@@ -58,6 +58,43 @@
 @keyframes marquee-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
 @keyframes fade-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 
+/* Hero animé : zoom lent (Ken Burns) + vapeur montante */
+@keyframes hero-kenburns {
+  0% { transform: scale(1) translateY(0); }
+  50% { transform: scale(1.08) translateY(-1.5%); }
+  100% { transform: scale(1) translateY(0); }
+}
+@keyframes steam-rise {
+  0% { transform: translateY(0) translateX(0) scale(0.7) rotate(0deg); opacity: 0; }
+  15% { opacity: 0.5; }
+  50% { transform: translateY(-45%) translateX(6%) scale(1.15) rotate(4deg); opacity: 0.35; }
+  85% { opacity: 0.15; }
+  100% { transform: translateY(-110%) translateX(-4%) scale(1.5) rotate(-3deg); opacity: 0; }
+}
+
+.hero-animated { isolation: isolate; }
+.hero-zoom { animation: hero-kenburns 26s ease-in-out infinite; will-change: transform; }
+.steam-puff {
+  position: absolute;
+  width: clamp(180px, 26vw, 380px);
+  height: clamp(180px, 26vw, 380px);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 50% 60%,
+    rgba(255, 255, 255, 0.16) 0%,
+    rgba(255, 255, 255, 0.07) 45%,
+    transparent 70%
+  );
+  filter: blur(18px);
+  animation-name: steam-rise;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-zoom, .steam-puff { animation: none; }
+}
+
 :root {
   --radius: 0.75rem;
   --background: oklch(0.13 0 0);

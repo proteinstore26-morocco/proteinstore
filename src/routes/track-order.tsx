@@ -4,7 +4,7 @@ import { CheckCircle2, MessageCircle, PackageCheck, Truck, XCircle } from "lucid
 import { trackOrder } from "@/lib/orders.functions";
 import { STATUS_LABELS, type PublicOrder } from "@/lib/order-types";
 import { mad } from "@/lib/pricing";
-import { buildTrackingMessage, whatsappUrl, WHATSAPP_DISPLAY } from "@/lib/whatsapp";
+import { buildTrackingMessage, whatsappUrl } from "@/lib/whatsapp";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -262,7 +262,7 @@ function Track() {
                 rel="noreferrer"
               >
                 <MessageCircle className="mr-2 size-4" />
-                Une question ? WhatsApp {WHATSAPP_DISPLAY}
+                Une question ? Écrivez-nous sur WhatsApp
               </a>
             </Button>
           </section>

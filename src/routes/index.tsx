@@ -52,13 +52,19 @@ function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd()) }}
       />
-      <section className="relative overflow-hidden">
+      <section className="hero-animated relative overflow-hidden">
         <img
           src={hero}
           alt="Athlète Protein Store"
-          className="absolute inset-0 h-full w-full object-cover opacity-40"
+          className="hero-zoom absolute inset-0 h-full w-full object-cover opacity-40"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent" />
+        <div aria-hidden className="steam pointer-events-none absolute inset-0 overflow-hidden">
+          <span className="steam-puff" style={{ left: "8%", bottom: "-20%", animationDelay: "0s", animationDuration: "11s" }} />
+          <span className="steam-puff" style={{ left: "30%", bottom: "-25%", animationDelay: "3.5s", animationDuration: "14s" }} />
+          <span className="steam-puff" style={{ left: "55%", bottom: "-18%", animationDelay: "1.8s", animationDuration: "12s" }} />
+          <span className="steam-puff" style={{ left: "76%", bottom: "-22%", animationDelay: "5.2s", animationDuration: "15s" }} />
+        </div>
         <div className="container-ps relative py-24 md:py-36">
           <p className="font-mono text-xs uppercase tracking-widest text-primary">
             {t("Kénitra · Depuis le Maroc")}
@@ -135,7 +141,7 @@ function Home() {
               className="group relative aspect-[4/5] overflow-hidden rounded-xl bg-card"
             >
               <img
-                src={categoryImages[c.slug]}
+                src={c.image_url || categoryImages[c.slug]}
                 alt={c.name}
                 loading="lazy"
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"

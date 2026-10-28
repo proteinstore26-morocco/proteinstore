@@ -92,3 +92,17 @@ export const partnerEditSchema = z.object({
     .refine(isAllowedPartnerLogoUrl, "URL de logo invalide.")
     .nullable(),
 });
+
+export const categoryEditSchema = z.object({
+  id: z.string().uuid().optional(),
+  name: z.string().trim().min(2).max(120),
+  slug: z.string().trim().max(120).optional(),
+  description: z.string().trim().max(1000),
+  image_url: z
+    .string()
+    .trim()
+    .max(2000)
+    .refine(isAllowedPartnerLogoUrl, "URL d'image invalide.")
+    .nullable(),
+  display_order: z.number().int().min(0),
+});

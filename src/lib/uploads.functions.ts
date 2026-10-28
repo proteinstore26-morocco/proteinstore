@@ -21,7 +21,7 @@ const uploadSchema = z.object({
 async function storeImage(
   context: AdminContext,
   input: UploadInput,
-  folder: "products" | "partners",
+  folder: "products" | "partners" | "categories",
   rateKey: string,
 ) {
   const { requireStoreAdmin } = await import("./admin-guard.server");
@@ -66,3 +66,8 @@ export const uploadPartnerLogo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => uploadSchema.parse(data))
   .handler(async ({ context, data }) => storeImage(context, data, "partners", "upload-partner"));
+
+export const uploadCategoryImage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => uploadSchema.parse(data))
+  .handler(async ({ context, data }) => storeImage(context, data, "categories", "upload-category"));
