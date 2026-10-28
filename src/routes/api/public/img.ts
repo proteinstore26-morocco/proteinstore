@@ -2,7 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { isSameOrSubdomain } from "@/lib/import-hosts";
 
 const MAX_BYTES = 8 * 1024 * 1024;
-const DENIED = new Response("Hôte non autorisé.", { status: 403 });
+// Une Response ne peut être lue qu'une fois : sous des requêtes parallèles,
+// un objet partagé lève « ReadableStream is locked » et fait planter le serveur.
+const denied = () => new Response("Hôte non autorisé.", { status: 403 });
 
 // Same-origin proxy for catalogue product photos. The URL must point at a host
 // the admin already approved for imports (IMPORT_ALLOWED_HOSTS + custom hosts),
@@ -24,7 +26,7 @@ export const Route = createFileRoute("/api/public/img")({
 
         const { importHostEntries } = await import("@/lib/import-hosts.server");
         const allowed = await importHostEntries();
-        if (!allowed.some((entry) => isSameOrSubdomain(target.hostname, entry.host))) return DENIED;
+        if (!allowed.some((entry) => isSameOrSubdomain(target.hostname, entry.host))) return denied();
 
         const upstream = await fetch(target, {
           redirect: "follow",
@@ -35,7 +37,7 @@ export const Route = createFileRoute("/api/public/img")({
         });
         // Redirects must not be used to escape the allowlist.
         const finalHost = new URL(upstream.url).hostname;
-        if (!allowed.some((entry) => isSameOrSubdomain(finalHost, entry.host))) return DENIED;
+        if (!allowed.some((entry) => isSameOrSubdomain(finalHost, entry.host))) return denied();
 
         const type = upstream.headers.get("content-type") ?? "";
         if (!upstream.ok || !type.startsWith("image/")) {
