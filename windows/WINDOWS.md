@@ -27,6 +27,26 @@ powershell -ExecutionPolicy Bypass -File .\stop-proteinstore.ps1
 powershell -ExecutionPolicy Bypass -File .\uninstall-autostart.ps1
 ```
 
+## Workflow de développement (tester en local, pousser sur GitHub)
+
+La tâche planifiée démarre la boutique **en local uniquement** (`http://localhost:8000`).
+Pour partager temporairement sur Internet : double-cliquez `windows\start-public.bat`.
+
+Git est installé (portable, ajouté au PATH utilisateur) et le dépôt est initialisé
+avec `origin` → `github.com/proteinstore26-morocco/proteinstore` :
+
+```bash
+# après vos modifications :
+git add -A
+git commit -m "description du changement"
+git push origin main:demo-python     # pousse la branche demo-python (main du projet React reste intacte)
+```
+
+La **première fois**, GitHub doit autoriser ce PC : la clé publique
+`C:\Users\nitro\.ssh\proteinstore_github.pub` doit être ajoutée une seule fois sur
+https://github.com/settings/keys (bouton "New SSH key", coller le contenu du fichier .pub).
+Ensuite tous les push passent sans mot de passe.
+
 ## Les 3 règles pour que le site reste en ligne
 
 1. **Le PC doit rester allumé** — c'est votre serveur maintenant.

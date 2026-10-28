@@ -1,5 +1,20 @@
 # Déploiement sur un serveur (VPS) — guide pas à pas
 
+> ## ⚠️ Cas particulier Hostinger (et hébergements mutualisés)
+>
+> L'offre **mutualisée** Hostinger (« Premium », « Business »…) exécute uniquement du
+> **PHP** : cette application **Python ne fonctionnera pas dessus**. Deux options :
+>
+> 1. **Hostinger VPS** (offre « KVM 1 », ~4-5 €/mois) — recommandé. Choisissez le
+>    template **Ubuntu 24.04** à la création, notez l'IP et le mot de passe root,
+>    puis suivez exactement les étapes 1-2 ci-dessous.
+> 2. Un hébergement mutualisé qui propose **« Setup Python App »** (cPanel/Passenger,
+>    ex. certains plans Namecheap, A2, o2switch) — l'application fonctionne avec un
+>    petit fichier `passenger_wsgi.py` (demandez-le-moi).
+>
+> Dans les deux cas, le domaine `proteinstore.pro` se branche ensuite en 2 minutes :
+> enregistrement DNS `A` → IP du serveur, puis le bloc Caddy de l'étape 3 pour le HTTPS.
+
 Objectif : le site tourne **24/7 sur un serveur avec IP publique fixe**, indépendant de votre PC.
 L'application n'a besoin que de Python 3 (préinstallé sur Ubuntu) — aucun npm, aucune base à installer.
 
