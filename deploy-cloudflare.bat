@@ -15,6 +15,9 @@ call bun run build
 
 echo [2/3] Copie vers le dossier de deploiement...
 robocopy "%~dp0dist\client" "%DEPLOY_DIR%" /E /NFL /NDL /NJH /NJS >nul
+copy /y "%DEPLOY_DIR%\_shell.html" "%DEPLOY_DIR%\index.html" >nul
+if exist "%DEPLOY_DIR%\index.html" del "%DEPLOY_DIR%\index.html"
+if exist "%DEPLOY_DIR%\_shell.html" ren "%DEPLOY_DIR%\_shell.html" "index.html"
 
 echo [3/3] Deploiement Cloudflare...
 pushd "%DEPLOY_DIR%"
