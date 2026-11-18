@@ -14,6 +14,7 @@
 - Never commit `.env`. Keep `.env.example` in sync and keep the service-role key server-only.
 - The production target is Node 22 (`nitro` preset `node-server`) behind systemd + Caddy on
   `127.0.0.1:5077`. Do not reintroduce a Cloudflare build.
+- Keep the Node server build in `.output`; mirror its public assets to `dist/` for Lovable's artifact check.
 - Do not force-push or rewrite published history; keep `main` in a working state.
 - Imported catalogue photos load through the `/api/public/img` same-origin proxy
   (allowlisted to the importer's approved hosts); storefront code maps absolute
